@@ -1,0 +1,771 @@
+<title>Joyor S5 ABE Service</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500&family=Fira+Code:wght@400;500&display=swap">
+<style>
+:root {
+  --bg: #f2f0eb;
+  --bg-card: #ffffff;
+  --bg-input: #eae7e0;
+  --text: #1a1d23;
+  --text-sec: #5c6370;
+  --accent: #e05a22;
+  --accent-hover: #c44d1b;
+  --accent-text: #fff;
+  --info: #2e7bb5;
+  --success: #1e7a45;
+  --warn: #c78c00;
+  --critical: #be2f2f;
+  --border: #d8d5ce;
+  --tab-bg: #e8e5de;
+  --tab-active: var(--bg-card);
+  --code-bg: #eae8e2;
+  --stripe-ok: var(--success);
+  --stripe-warn: var(--warn);
+  --stripe-crit: var(--critical);
+  --stripe-info: var(--info);
+  --shadow: 0 1px 3px rgba(26,29,35,.07);
+  --shadow-lg: 0 4px 12px rgba(26,29,35,.1);
+}
+@media(prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg: #13151a;
+    --bg-card: #1c1e25;
+    --bg-input: #22242b;
+    --text: #e4e2dd;
+    --text-sec: #8b8f99;
+    --accent: #ed6d38;
+    --accent-hover: #f58455;
+    --border: #2e3038;
+    --tab-bg: #1a1c22;
+    --tab-active: var(--bg-card);
+    --code-bg: #22242b;
+    --shadow: 0 1px 3px rgba(0,0,0,.25);
+    --shadow-lg: 0 4px 12px rgba(0,0,0,.35);
+  }
+}
+:root[data-theme="dark"]{
+  --bg: #13151a;
+  --bg-card: #1c1e25;
+  --bg-input: #22242b;
+  --text: #e4e2dd;
+  --text-sec: #8b8f99;
+  --accent: #ed6d38;
+  --accent-hover: #f58455;
+  --border: #2e3038;
+  --tab-bg: #1a1c22;
+  --tab-active: var(--bg-card);
+  --code-bg: #22242b;
+  --shadow: 0 1px 3px rgba(0,0,0,.25);
+  --shadow-lg: 0 4px 12px rgba(0,0,0,.35);
+}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:'Barlow',system-ui,-apple-system,sans-serif;
+  font-weight:400;
+  color:var(--text);
+  background:var(--bg);
+  line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+}
+.app{max-width:680px;margin:0 auto;padding:0 16px 80px}
+
+/* Header */
+.hdr{padding:24px 0 16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.hdr-badge{
+  font-family:'Fira Code','Courier New',monospace;
+  font-size:11px;font-weight:500;
+  background:var(--accent);color:var(--accent-text);
+  padding:3px 8px;border-radius:3px;letter-spacing:.5px;
+  text-transform:uppercase;white-space:nowrap;
+}
+.hdr h1{
+  font-family:'Barlow Condensed',sans-serif;
+  font-weight:700;font-size:clamp(22px,5vw,28px);
+  letter-spacing:-.3px;line-height:1.15;
+}
+.hdr-sub{
+  width:100%;font-size:13px;color:var(--text-sec);
+  margin-top:-6px;
+}
+
+/* Tabs */
+.tabs{
+  display:flex;gap:2px;
+  background:var(--tab-bg);
+  border-radius:6px;padding:3px;
+  margin-bottom:20px;
+  overflow-x:auto;
+  -webkit-overflow-scrolling:touch;
+}
+.tab-btn{
+  flex:1;min-width:0;
+  font-family:'Barlow Condensed',sans-serif;
+  font-weight:600;font-size:14px;
+  letter-spacing:.3px;text-transform:uppercase;
+  padding:9px 6px;border:0;border-radius:4px;
+  background:transparent;color:var(--text-sec);
+  cursor:pointer;transition:all .15s;
+  white-space:nowrap;text-align:center;
+}
+.tab-btn:hover{color:var(--text)}
+.tab-btn:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.tab-btn.active{background:var(--tab-active);color:var(--text);box-shadow:var(--shadow)}
+
+/* Sections */
+.section{display:none}
+.section.active{display:block}
+.section-title{
+  font-family:'Barlow Condensed',sans-serif;
+  font-weight:700;font-size:18px;
+  letter-spacing:.2px;
+  margin-bottom:14px;
+  padding-bottom:8px;
+  border-bottom:2px solid var(--border);
+}
+
+/* Cards */
+.card{
+  background:var(--bg-card);
+  border:1px solid var(--border);
+  border-radius:6px;
+  padding:14px 16px;
+  margin-bottom:10px;
+  box-shadow:var(--shadow);
+  position:relative;
+}
+.card-stripe{
+  position:absolute;left:0;top:0;bottom:0;width:4px;
+  border-radius:6px 0 0 6px;
+}
+.card-stripe.ok{background:var(--stripe-ok)}
+.card-stripe.warn{background:var(--stripe-warn)}
+.card-stripe.crit{background:var(--stripe-crit)}
+.card-stripe.info{background:var(--stripe-info)}
+.card.has-stripe{padding-left:22px}
+
+/* Search input */
+.search-wrap{margin-bottom:16px}
+.search-input{
+  width:100%;
+  font-family:'Fira Code',monospace;font-size:14px;
+  padding:10px 14px;
+  border:1px solid var(--border);border-radius:5px;
+  background:var(--bg-input);color:var(--text);
+  transition:border-color .15s;
+}
+.search-input::placeholder{color:var(--text-sec);font-family:'Barlow',sans-serif}
+.search-input:focus{outline:none;border-color:var(--accent)}
+
+/* Error code cards */
+.err-code{
+  font-family:'Fira Code',monospace;font-weight:500;
+  font-size:15px;color:var(--accent);
+}
+.err-title{font-weight:500;margin-top:2px}
+.err-detail{font-size:13px;color:var(--text-sec);margin-top:6px}
+.err-fix{
+  font-size:13px;margin-top:8px;
+  padding:8px 10px;
+  background:var(--code-bg);border-radius:4px;
+}
+.err-fix strong{color:var(--accent);font-weight:500}
+.err-sev{
+  font-family:'Fira Code',monospace;font-size:11px;
+  letter-spacing:.5px;text-transform:uppercase;
+  display:inline-block;padding:2px 6px;border-radius:3px;
+  margin-left:8px;
+}
+.sev-low{background:var(--success);color:#fff}
+.sev-med{background:var(--warn);color:#1a1d23}
+.sev-high{background:var(--critical);color:#fff}
+.no-results{text-align:center;color:var(--text-sec);padding:30px 0;font-size:14px}
+
+/* Maintenance */
+.maint-item{display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.maint-check{
+  width:22px;height:22px;flex-shrink:0;margin-top:1px;
+  accent-color:var(--accent);cursor:pointer;
+}
+.maint-body{flex:1;min-width:200px}
+.maint-name{font-weight:500;font-size:15px}
+.maint-interval{font-size:12px;color:var(--text-sec);margin-top:1px}
+.maint-interval code{
+  font-family:'Fira Code',monospace;font-size:11px;
+  background:var(--code-bg);padding:1px 5px;border-radius:3px;
+}
+.maint-last{
+  font-size:12px;color:var(--text-sec);
+  margin-top:4px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;
+}
+.maint-date{
+  font-family:'Fira Code',monospace;font-size:12px;
+  padding:3px 8px;border:1px solid var(--border);border-radius:4px;
+  background:var(--bg-input);color:var(--text);
+}
+.maint-overdue{color:var(--critical);font-weight:500}
+.maint-ok{color:var(--success)}
+
+.km-bar{
+  display:flex;align-items:center;gap:10px;
+  margin-bottom:20px;flex-wrap:wrap;
+}
+.km-bar label{font-weight:500;font-size:14px;white-space:nowrap}
+.km-input{
+  font-family:'Fira Code',monospace;font-size:14px;
+  width:110px;padding:7px 10px;
+  border:1px solid var(--border);border-radius:5px;
+  background:var(--bg-input);color:var(--text);
+}
+.km-input:focus{outline:none;border-color:var(--accent)}
+.km-unit{font-size:13px;color:var(--text-sec)}
+.km-save{
+  font-family:'Barlow Condensed',sans-serif;font-weight:600;
+  font-size:13px;letter-spacing:.3px;text-transform:uppercase;
+  padding:7px 14px;border:0;border-radius:4px;
+  background:var(--accent);color:var(--accent-text);
+  cursor:pointer;transition:background .15s;
+}
+.km-save:hover{background:var(--accent-hover)}
+.km-save:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* Specs */
+.spec-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+@media(max-width:480px){.spec-grid{grid-template-columns:1fr}}
+.spec-item{
+  padding:10px 12px;
+  background:var(--bg-card);border:1px solid var(--border);
+  border-radius:5px;
+}
+.spec-label{font-size:12px;color:var(--text-sec);text-transform:uppercase;letter-spacing:.4px;font-family:'Barlow Condensed',sans-serif}
+.spec-value{
+  font-family:'Fira Code',monospace;font-weight:500;
+  font-size:15px;margin-top:2px;
+}
+.quick-ref{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
+  gap:8px;margin-bottom:24px;
+}
+.qr-item{
+  padding:10px 12px;border-radius:5px;
+  border-left:3px solid var(--accent);
+  background:var(--bg-card);
+  border-top:1px solid var(--border);
+  border-right:1px solid var(--border);
+  border-bottom:1px solid var(--border);
+}
+.qr-label{font-size:11px;color:var(--text-sec);text-transform:uppercase;letter-spacing:.4px;font-family:'Barlow Condensed',sans-serif}
+.qr-value{font-family:'Fira Code',monospace;font-weight:500;font-size:14px;margin-top:2px}
+
+/* P-Settings */
+.pset-card{cursor:pointer;user-select:none}
+.pset-header{display:flex;align-items:center;gap:10px}
+.pset-code{
+  font-family:'Fira Code',monospace;font-weight:500;
+  font-size:14px;color:var(--accent);
+  min-width:36px;
+}
+.pset-name{font-weight:500;font-size:14px;flex:1}
+.pset-val{
+  font-family:'Fira Code',monospace;font-size:12px;
+  background:var(--code-bg);padding:2px 8px;border-radius:3px;
+  color:var(--text-sec);
+}
+.pset-abe{
+  font-size:10px;font-weight:600;letter-spacing:.5px;
+  text-transform:uppercase;
+  background:var(--critical);color:#fff;
+  padding:2px 6px;border-radius:3px;
+}
+.pset-detail{
+  display:none;margin-top:10px;padding-top:10px;
+  border-top:1px solid var(--border);
+  font-size:13px;color:var(--text-sec);
+}
+.pset-card.open .pset-detail{display:block}
+.pset-arrow{
+  font-size:12px;color:var(--text-sec);
+  transition:transform .15s;
+}
+.pset-card.open .pset-arrow{transform:rotate(90deg)}
+
+/* Troubleshoot */
+.trouble-card{cursor:pointer;user-select:none}
+.trouble-q{font-weight:500;font-size:15px;display:flex;align-items:center;gap:8px}
+.trouble-arrow{font-size:12px;color:var(--text-sec);transition:transform .15s;flex-shrink:0}
+.trouble-card.open .trouble-arrow{transform:rotate(90deg)}
+.trouble-steps{
+  display:none;margin-top:10px;padding-top:10px;
+  border-top:1px solid var(--border);
+  font-size:13px;
+}
+.trouble-card.open .trouble-steps{display:block}
+.trouble-steps ol{padding-left:20px}
+.trouble-steps li{margin-bottom:6px;line-height:1.5}
+.trouble-steps li strong{color:var(--accent);font-weight:500}
+
+/* Footer */
+.foot{
+  margin-top:32px;padding-top:16px;
+  border-top:1px solid var(--border);
+  font-size:12px;color:var(--text-sec);
+  text-align:center;
+}
+
+/* Focus */
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* Reduced motion */
+@media(prefers-reduced-motion:reduce){
+  *{transition:none !important}
+}
+</style>
+
+<div class="app">
+  <header class="hdr">
+    <span class="hdr-badge">ABE</span>
+    <h1>Joyor S5 Service-Tool</h1>
+    <p class="hdr-sub">Selbst-Wartung, Diagnose &amp; Referenz</p>
+  </header>
+
+  <nav class="tabs" role="tablist">
+    <button class="tab-btn active" role="tab" aria-selected="true" data-tab="diagnose">Diagnose</button>
+    <button class="tab-btn" role="tab" aria-selected="false" data-tab="wartung">Wartung</button>
+    <button class="tab-btn" role="tab" aria-selected="false" data-tab="psettings">P-Settings</button>
+    <button class="tab-btn" role="tab" aria-selected="false" data-tab="daten">Daten</button>
+    <button class="tab-btn" role="tab" aria-selected="false" data-tab="hilfe">Hilfe</button>
+  </nav>
+
+  <!-- DIAGNOSE -->
+  <section id="diagnose" class="section active">
+    <div class="search-wrap">
+      <input type="text" class="search-input" id="errSearch" placeholder="Fehlercode eingeben, z.B. E04 oder Suchbegriff..." autocomplete="off">
+    </div>
+    <div id="errList"></div>
+  </section>
+
+  <!-- WARTUNG -->
+  <section id="wartung" class="section">
+    <div class="km-bar">
+      <label for="kmInput">Kilometerstand:</label>
+      <input type="number" class="km-input" id="kmInput" min="0" step="1" placeholder="0">
+      <span class="km-unit">km</span>
+      <button class="km-save" id="kmSave">Speichern</button>
+    </div>
+    <h2 class="section-title">Wartungsplan</h2>
+    <div id="maintList"></div>
+  </section>
+
+  <!-- P-SETTINGS -->
+  <section id="psettings" class="section">
+    <p style="font-size:13px;color:var(--text-sec);margin-bottom:16px">
+      P-Parameter im LCD-Display: Bremshebel gedrückt halten + Power-Taste. Mit Bremshebel durch Parameter navigieren, kurz Power zum Ändern, lang Power zum Speichern.
+    </p>
+    <div id="psetList"></div>
+    <div class="card has-stripe" style="margin-top:16px">
+      <div class="card-stripe crit"></div>
+      <div style="font-size:13px">
+        <strong style="color:var(--critical)">ABE-Hinweis:</strong>
+        Mit <span class="hdr-badge" style="font-size:10px;vertical-align:1px">ABE</span> markierte Parameter dürfen bei zugelassenen Fahrzeugen nicht verändert werden. Eine Änderung führt zum Erlöschen der Betriebserlaubnis.
+      </div>
+    </div>
+  </section>
+
+  <!-- DATEN -->
+  <section id="daten" class="section">
+    <h2 class="section-title">Schnellreferenz</h2>
+    <div class="quick-ref">
+      <div class="qr-item"><div class="qr-label">Reifendruck</div><div class="qr-value">2.5 – 3.0 bar</div></div>
+      <div class="qr-item"><div class="qr-label">Akku voll</div><div class="qr-value">54.6 V</div></div>
+      <div class="qr-item"><div class="qr-label">Akku leer</div><div class="qr-value">39.0 V</div></div>
+      <div class="qr-item"><div class="qr-label">Bremsbelag min.</div><div class="qr-value">1.5 mm</div></div>
+      <div class="qr-item"><div class="qr-label">Ladezeit</div><div class="qr-value">6 – 8 h</div></div>
+      <div class="qr-item"><div class="qr-label">Max. Zuladung</div><div class="qr-value">120 kg</div></div>
+    </div>
+
+    <h2 class="section-title">Technische Daten</h2>
+    <div class="spec-grid">
+      <div class="spec-item"><div class="spec-label">Motor</div><div class="spec-value">500 W BLDC</div></div>
+      <div class="spec-item"><div class="spec-label">Nennspannung</div><div class="spec-value">48 V</div></div>
+      <div class="spec-item"><div class="spec-label">Akku</div><div class="spec-value">48V 13Ah Li-Ion</div></div>
+      <div class="spec-item"><div class="spec-label">Reichweite</div><div class="spec-value">40 – 55 km</div></div>
+      <div class="spec-item"><div class="spec-label">V-Max (ABE)</div><div class="spec-value">20 km/h</div></div>
+      <div class="spec-item"><div class="spec-label">Gewicht</div><div class="spec-value">~23 kg</div></div>
+      <div class="spec-item"><div class="spec-label">Reifen</div><div class="spec-value">10" Pneumatik</div></div>
+      <div class="spec-item"><div class="spec-label">Bremsen</div><div class="spec-value">Scheibenbremse v/h</div></div>
+      <div class="spec-item"><div class="spec-label">Schutzklasse</div><div class="spec-value">IP54</div></div>
+      <div class="spec-item"><div class="spec-label">Ladegerät</div><div class="spec-value">54.6V 2A</div></div>
+      <div class="spec-item"><div class="spec-label">Zellen</div><div class="spec-value">13S / 48V</div></div>
+      <div class="spec-item"><div class="spec-label">Zulassung</div><div class="spec-value">eKFV / ABE</div></div>
+    </div>
+
+    <h2 class="section-title" style="margin-top:24px">Anzugsmomente</h2>
+    <div class="spec-grid">
+      <div class="spec-item"><div class="spec-label">Lenkerklemme</div><div class="spec-value">18 – 20 Nm</div></div>
+      <div class="spec-item"><div class="spec-label">Achsmuttern</div><div class="spec-value">25 – 30 Nm</div></div>
+      <div class="spec-item"><div class="spec-label">Bremsscheibe</div><div class="spec-value">5 – 6 Nm</div></div>
+      <div class="spec-item"><div class="spec-label">Bremssattel</div><div class="spec-value">8 – 10 Nm</div></div>
+      <div class="spec-item"><div class="spec-label">Klappgelenk</div><div class="spec-value">12 – 15 Nm</div></div>
+      <div class="spec-item"><div class="spec-label">Trittbrett-Schrauben</div><div class="spec-value">8 – 10 Nm</div></div>
+    </div>
+  </section>
+
+  <!-- HILFE -->
+  <section id="hilfe" class="section">
+    <h2 class="section-title">Fehlerbehebung</h2>
+    <div id="troubleList"></div>
+  </section>
+
+  <footer class="foot">
+    Joyor S5 ABE Service-Tool &middot; Daten ohne Gewähr &middot; Alle Arbeiten auf eigene Verantwortung
+  </footer>
+</div>
+
+<script>
+/* ── Data ────────────────────────────────────── */
+
+const ERRORS = [
+  {code:'E01',title:'Gasgriff-Fehler',sev:'high',
+   desc:'Gasgriff liefert ungültiges Signal beim Einschalten.',
+   fix:'Gasgriff-Stecker prüfen und reinigen. Gasgriff bei ausgeschaltetem Scooter nicht betätigen. Stecker am Controller (3-polig, rot/schwarz/grün) kontrollieren. Bei Defekt: Gasgriff tauschen (Hallsensor-Typ, 1-4.2V).'},
+  {code:'E02',title:'Bremssensor-Fehler',sev:'high',
+   desc:'Bremshebel-Sensor meldet Dauerbremsung oder kein Signal.',
+   fix:'Bremshebel-Kabel am Controller prüfen (2-polig). Bremshebel mehrmals betätigen. Hebelstellung und Rückstellfeder kontrollieren. Magnetschalter im Bremshebel auf Verschmutzung prüfen.'},
+  {code:'E03',title:'Phasenkabel-Fehler',sev:'high',
+   desc:'Eine oder mehrere der drei Motorphasen (U/V/W) sind unterbrochen oder kurzgeschlossen.',
+   fix:'Drei dicke Motorkabel (gelb/grün/blau) am Controller prüfen. Stecker auf Korrosion, Schmorspuren oder lockeren Sitz kontrollieren. Kabel auf Knicke und Brüche entlang des Lenkerschafts prüfen. Bei intakten Kabeln: Motor oder Controller defekt.'},
+  {code:'E04',title:'Hall-Sensor-Fehler',sev:'med',
+   desc:'Motor-Hallsensor liefert ungültiges Signal. Motor dreht ungleichmäßig oder gar nicht.',
+   fix:'Hall-Sensor-Stecker am Controller prüfen (5-polig, dünn). Kabel auf Bruch prüfen, besonders an der Hinterradachse. Multimeter: 5V zwischen rot und schwarz messen. Bei Defekt: Hallsensor im Motor tauschen oder Motor ersetzen.'},
+  {code:'E05',title:'Controller-Fehler',sev:'high',
+   desc:'Interner Fehler im Motorcontroller. Scooter startet nicht oder schaltet ab.',
+   fix:'Alle Stecker am Controller abziehen und neu stecken. Akku 30 Sekunden trennen (Hauptstecker ziehen), dann neu verbinden. Auf Schmorgeruch am Controller prüfen. Bei wiederholtem Fehler: Controller tauschen (48V, passendes Modell).'},
+  {code:'E06',title:'Unterspannung',sev:'med',
+   desc:'Akkuspannung unter Mindestgrenze (ca. 39V). BMS hat abgeschaltet.',
+   fix:'Akku vollständig laden. Ladegerät-LED prüfen (rot=lädt, grün=voll). Spannung am Ladebuchse messen: 54.6V bei vollem Ladegerät. Bei schnellem Spannungsabfall: Zellbalancing oder defekte Zellen. Akku nicht tiefentladen lagern.'},
+  {code:'E07',title:'Überspannung',sev:'med',
+   desc:'Akkuspannung über Maximum. Kann bei Rekuperation an vollem Akku auftreten.',
+   fix:'Akku nicht direkt nach dem Laden bergab fahren. Bei häufigem Auftreten: Rekuperationsstärke in P09 reduzieren. Ladegerät-Ausgangsspannung prüfen (muss 54.6V ± 0.5V sein). Defektes Ladegerät kann Überspannung verursachen.'},
+  {code:'E08',title:'Kommunikationsfehler',sev:'low',
+   desc:'Datenübertragung zwischen Display und Controller gestört.',
+   fix:'Display-Kabel am Controller prüfen (5-polig oder 6-polig). Steckverbindung reinigen. Kabel am Lenker auf Quetschung prüfen. Scooter aus/einschalten. Bei Dauerfehler: Display-Platine oder Kabel defekt.'},
+  {code:'E09',title:'BMS-Fehler',sev:'high',
+   desc:'Battery Management System meldet kritischen Zustand.',
+   fix:'Akku abkühlen lassen, nicht bei extremen Temperaturen laden. BMS-Reset: Akku komplett entladen (bis Scooter abschaltet), dann voll laden. Bei wiederholtem Fehler: BMS-Platine im Akku defekt, Fachbetrieb aufsuchen.'},
+  {code:'E10',title:'Überstrom-Schutz',sev:'med',
+   desc:'Controller hat zu hohen Strom gemessen. Tritt bei Überlastung oder Kurzschluss auf.',
+   fix:'Steigung reduzieren, Zuladung prüfen (max. 120 kg). Motorkabel auf Kurzschluss prüfen. Bei kaltem Wetter: Akku vorwärmen. Wenn bei Normalbetrieb: Controller-Stromsensor oder MOSFETs defekt.'},
+  {code:'E11',title:'Motor-Überlast',sev:'med',
+   desc:'Motor überhitzt durch Dauerlast (lange Steigung, Gegenwind, Übergewicht).',
+   fix:'Scooter 10-15 Minuten abkühlen lassen. Steigung meiden oder teilweise schieben. Zuladung reduzieren. Reifendruck prüfen (zu niedrig = mehr Rollwiderstand). Motor-Temperatursensor prüfen wenn bei Normalbetrieb.'},
+  {code:'E12',title:'Temperatursensor-Fehler',sev:'low',
+   desc:'Temperaturfühler im Motor oder Controller liefert kein gültiges Signal.',
+   fix:'Sensor-Stecker am Controller prüfen. Kabel auf Bruch kontrollieren. Scooter kann ohne Temperatursensor betrieben werden (kein Überhitzungsschutz). Sensor bei nächster Gelegenheit ersetzen.'},
+  {code:'E13',title:'Akku-Temperaturfehler',sev:'med',
+   desc:'Akku-Temperatur außerhalb des sicheren Bereichs (unter 0°C oder über 45°C).',
+   fix:'Nicht bei Frost oder in praller Sonne laden. Akku auf Raumtemperatur bringen. Betriebstemperatur: -10°C bis 40°C, Ladetemperatur: 0°C bis 45°C. Bei Fehler trotz normaler Temperatur: NTC-Sensor im Akkupack defekt.'},
+  {code:'E14',title:'Drehzahlsensor-Fehler',sev:'low',
+   desc:'Drehzahlmessung am Motor fehlerhaft. Geschwindigkeitsanzeige falsch oder Null.',
+   fix:'Hall-Sensor-Kabel prüfen (gleicher Stecker wie E04). Magnete am Motorrotor auf Beschädigung prüfen. Geschwindigkeitsanzeige kalibrieren über P06 (Raddurchmesser). Bei falschem Tacho ohne Fehlercode: P08 (Motorpole) prüfen.'},
+];
+
+const MAINT = [
+  {id:'tire_pressure',name:'Reifendruck prüfen',interval:'Alle 2 Wochen',days:14,
+   note:'Vorne und hinten 2.5–3.0 bar. Kaltreifen messen.'},
+  {id:'brakes',name:'Bremsen prüfen',interval:'Monatlich',days:30,
+   note:'Hebelweg, Bremswirkung, Belagstärke (min. 1.5 mm). Scheibe auf Riefen kontrollieren.'},
+  {id:'bolts',name:'Schrauben nachziehen',interval:'Monatlich',days:30,
+   note:'Lenker, Klappgelenk, Achsmuttern, Trittbrett. Drehmomente beachten (siehe Daten-Tab).'},
+  {id:'folding',name:'Klappverriegelung prüfen',interval:'Monatlich',days:30,
+   note:'Verriegelungshaken auf festen Sitz, Spiel im Gelenk, Sicherungsstift.'},
+  {id:'lights',name:'Licht & Klingel testen',interval:'Monatlich',days:30,
+   note:'Frontlicht, Rücklicht, Bremslicht, Klingel. StVZO-Pflicht bei ABE-Betrieb.'},
+  {id:'tires',name:'Reifenprofil & Zustand',interval:'Alle 3 Monate',days:90,
+   note:'Profil, Risse, Fremdkörper. Reifen bei <1mm Profil tauschen.'},
+  {id:'battery_cal',name:'Akku kalibrieren',interval:'Alle 3 Monate',days:90,
+   note:'Voll entladen (bis Abschaltung), dann komplett laden. Verbessert die Kapazitätsanzeige.'},
+  {id:'brake_pads',name:'Bremsbeläge prüfen',interval:'Alle 1.000 km',km:1000,
+   note:'Belagstärke min. 1.5 mm. Metallisches Schleifen = sofort tauschen.'},
+  {id:'bearings',name:'Lenkungslager prüfen',interval:'Alle 6 Monate',days:180,
+   note:'Lenker darf kein Spiel haben. Lager nachstellen oder Fett erneuern.'},
+  {id:'cables',name:'Kabel & Stecker prüfen',interval:'Alle 6 Monate',days:180,
+   note:'Alle sichtbaren Kabel auf Scheuerstellen, Knicke, lockere Stecker.'},
+  {id:'disc',name:'Bremsscheibe prüfen',interval:'Alle 2.000 km',km:2000,
+   note:'Scheibenstärke und Planheit. Scheibe bei sichtbaren Riefen oder Verzug tauschen.'},
+  {id:'tire_replace',name:'Reifen wechseln',interval:'Alle 3.000–5.000 km',km:4000,
+   note:'10-Zoll-Luftreifen. Schlauch beim Wechsel immer mit erneuern. Reifenheber verwenden.'},
+];
+
+const PSETTINGS = [
+  {code:'P01',name:'Startmodus',val:'0 / 1',def:'1',abe:false,
+   desc:'0 = Nullstart (fährt aus dem Stand los), 1 = Kickstart (erst anschieben, dann Gas). Kickstart ist sicherer und schont den Motor.'},
+  {code:'P02',name:'Tempomat',val:'0 / 1',def:'0',abe:false,
+   desc:'0 = Aus, 1 = An. Hält die aktuelle Geschwindigkeit nach 5 Sek. konstantem Gas. Bremsen deaktiviert den Tempomat.'},
+  {code:'P03',name:'Geschwindigkeitslimit',val:'0–100%',def:'100',abe:true,
+   desc:'Maximale Geschwindigkeit in Prozent. ABE-Version ist auf 20 km/h limitiert. Änderung führt zum Erlöschen der ABE.'},
+  {code:'P04',name:'Nennspannung',val:'36 / 48 / 52 / 60',def:'48',abe:true,
+   desc:'Akkuspannung des Systems. Muss auf 48V stehen. Falsche Einstellung kann Controller oder Motor beschädigen.'},
+  {code:'P05',name:'Leistungsstufe',val:'1–5',def:'5',abe:true,
+   desc:'Maximale Motorleistung. ABE-Version ist auf die zugelassene Leistungsstufe begrenzt.'},
+  {code:'P06',name:'Raddurchmesser',val:'5–12 Zoll',def:'10',abe:false,
+   desc:'Für korrekte Geschwindigkeitsanzeige. Joyor S5 = 10 Zoll. Falsche Einstellung verfälscht Tacho und Kilometerstand.'},
+  {code:'P07',name:'Einheit',val:'0 / 1',def:'0',abe:false,
+   desc:'0 = km/h, 1 = mph. In Deutschland km/h verwenden.'},
+  {code:'P08',name:'Motorpole',val:'Polzahl',def:'15',abe:false,
+   desc:'Anzahl der Magnetpole im Motor. Joyor S5 = 15 Pole. Beeinflusst Tachogenauigkeit. Nur ändern wenn neuer Motor verbaut wird.'},
+  {code:'P09',name:'Rekuperation',val:'0–5',def:'2',abe:false,
+   desc:'Stärke der Energierückgewinnung beim Bremsen. 0 = Aus, 5 = Maximum. Höhere Werte = stärkere Motorbremse, mehr Reichweite, aber ruckartigeres Bremsen.'},
+  {code:'P10',name:'Display-Helligkeit',val:'1–3',def:'2',abe:false,
+   desc:'1 = Dunkel, 2 = Normal, 3 = Hell. Höhere Helligkeit bei Sonnenlicht, niedrigere spart minimal Strom.'},
+  {code:'P11',name:'E-Bremse',val:'0 / 1',def:'1',abe:false,
+   desc:'0 = Aus, 1 = An. Elektronische Bremse über den Motor. Ergänzt die mechanische Scheibenbremse.'},
+  {code:'P12',name:'ABS-Modus',val:'0 / 1',def:'0',abe:false,
+   desc:'0 = Aus, 1 = An. Anti-Blockier-System für die E-Bremse. Verhindert Blockieren des Hinterrads bei Nässe.'},
+  {code:'P13',name:'Fehler-Reset',val:'Aktion',def:'—',abe:false,
+   desc:'Löscht gespeicherte Fehlercodes. Nur nach Behebung der Ursache verwenden. Setzt den Fehlerspeicher zurück.'},
+  {code:'P14',name:'Unterspannungsschutz',val:'Volt',def:'39.0',abe:true,
+   desc:'Abschaltspannung zum Schutz des Akkus. Standard 39.0V (3.0V/Zelle). Tiefere Werte verkürzen die Akku-Lebensdauer erheblich.'},
+  {code:'P15',name:'Werksreset',val:'Aktion',def:'—',abe:false,
+   desc:'Setzt alle P-Parameter auf Werkseinstellungen zurück. ABE-Werte werden wiederhergestellt.'},
+];
+
+const TROUBLES = [
+  {q:'Scooter startet nicht',steps:[
+    '<strong>Akku-Ladezustand</strong> prüfen — Display leuchtet beim Einschalten? Wenn nicht: laden.',
+    '<strong>Hauptschalter</strong> und Zündschloss prüfen — bei Modellen mit Schloss.',
+    '<strong>Sicherung</strong> im Akkufach prüfen (30A Flachsicherung). Durchgebrannt = tauschen.',
+    '<strong>Ladebuchse</strong> — Ladegerät anschließen. LED am Ladegerät muss leuchten (rot=lädt).',
+    'Akku-Stecker unter dem Trittbrett prüfen — fest eingesteckt? Korrosion?',
+    'Wenn Display leuchtet aber Motor nicht reagiert: Gasgriff und Bremssensor prüfen (E01/E02).',
+    'Controller-Reset: Akku-Hauptstecker 30 Sek. trennen, neu verbinden.',
+  ]},
+  {q:'Geringe Reichweite',steps:[
+    '<strong>Reifendruck</strong> prüfen — zu niedriger Druck erhöht den Verbrauch erheblich.',
+    '<strong>Fahrmodus</strong> — niedrigere Stufe verwenden, sanft beschleunigen.',
+    '<strong>Temperatur</strong> — unter 10°C sinkt die Reichweite um 20–40%.',
+    '<strong>Akku-Alter</strong> — nach 300-500 Zyklen sinkt die Kapazität auf ca. 80%.',
+    '<strong>Akku kalibrieren</strong> — komplett leerfahren, dann voll laden.',
+    'Steigung, Gegenwind und Zuladung berücksichtigen.',
+    'Wenn plötzlicher Reichweitenverlust: einzelne Zelle defekt, Fachbetrieb aufsuchen.',
+  ]},
+  {q:'Bremsen quietschen oder schleifen',steps:[
+    '<strong>Neue Beläge</strong> müssen eingebremst werden: 20x aus 15 km/h sanft bremsen.',
+    '<strong>Scheibe reinigen</strong> — Bremsenreiniger verwenden, kein Öl.',
+    '<strong>Bremssattel ausrichten</strong> — Befestigungsschrauben lösen, Bremse ziehen, Schrauben festziehen.',
+    'Belagstärke prüfen: unter 1.5 mm = tauschen.',
+    '<strong>Scheibe prüfen</strong> — verzogene Scheibe schleift. Scheibe richten oder tauschen.',
+    'Quietschen bei Nässe ist normal und verschwindet nach wenigen Bremsungen.',
+  ]},
+  {q:'Display zeigt nichts an',steps:[
+    '<strong>Akku geladen?</strong> Power-Taste 2 Sek. gedrückt halten.',
+    '<strong>Display-Kabel</strong> am Controller prüfen (5/6-poliger Stecker).',
+    'Kabel am Lenker auf Quetschung prüfen — häufig beim Zusammenklappen beschädigt.',
+    '<strong>Sicherung</strong> im Akkufach prüfen.',
+    'Akku-Spannung direkt am Hauptstecker messen (Multimeter, 48V erwartet).',
+    'Wenn Spannung vorhanden aber Display dunkel: Display-Platine defekt, tauschen.',
+  ]},
+  {q:'Ladevorgang startet nicht',steps:[
+    '<strong>Steckdose</strong> prüfen — anderes Gerät anschließen.',
+    '<strong>Ladegerät-LED</strong> — muss beim Einstecken (ohne Scooter) grün leuchten.',
+    '<strong>Ladebuchse</strong> am Scooter auf Verschmutzung und verbogene Pins prüfen.',
+    '<strong>Ladegerät-Spannung</strong> messen: 54.6V ± 0.5V am Stecker.',
+    'Bei Hitze: Akku und Ladegerät auf <40°C abkühlen lassen.',
+    'BMS hat abgeschaltet: Akku-Stecker 30 Sek. trennen, dann Ladegerät anschließen.',
+    'Wenn Ladegerät heiß wird und abschaltet: interner Defekt, Ladegerät ersetzen.',
+  ]},
+  {q:'Scooter ruckelt oder verliert Leistung',steps:[
+    '<strong>Akku-Ladezustand</strong> — bei niedrigem Ladestand wird die Leistung reduziert.',
+    '<strong>Gasgriff</strong> — gleichmäßig drehen, auf ruckfreien Lauf prüfen.',
+    '<strong>Motorkabel</strong> (3 Phasen) auf lockere Stecker prüfen.',
+    '<strong>Hall-Sensor</strong> — Fehlercode E04 prüfen. Häufigste Ursache für Ruckeln.',
+    '<strong>Bremssensor</strong> — klemmt der Sensor, wird der Motor gebremst.',
+    'Controller-Reset durchführen. Wenn danach besser: intermittierender Kontaktfehler.',
+    'Bei Ruckeln nur bergauf: Motor überlastet (E11), Zuladung reduzieren.',
+  ]},
+  {q:'Ungewöhnliche Geräusche',steps:[
+    '<strong>Klappern</strong> — Schrauben und Klappgelenk nachziehen.',
+    '<strong>Schleifen</strong> — Bremsscheibe, Schutzbleche, Kabel die am Rad schleifen.',
+    '<strong>Klicken</strong> im Motor — Motorlager verschlissen, Motor muss getauscht werden.',
+    '<strong>Summen</strong> im Stand — Controller-Elektronik, normal bei einigen Modellen.',
+    '<strong>Pfeifen</strong> beim Fahren — Motorphasen-Problem (E03), Kabel prüfen.',
+    '<strong>Knacken</strong> beim Lenken — Lenkungslager nachstellen oder fetten.',
+  ]},
+  {q:'Akku-Pflege & Lagerung',steps:[
+    '<strong>Lagerladung</strong>: Bei längerer Nichtbenutzung Akku auf 40–60% laden.',
+    '<strong>Nicht tiefentladen</strong> lagern — kann Zellen dauerhaft beschädigen.',
+    'Alle 4–6 Wochen Ladestand prüfen und ggf. nachladen.',
+    '<strong>Temperatur</strong>: Zwischen 10°C und 25°C lagern. Nicht im Freien überwintern.',
+    '<strong>Nicht direkt nach dem Fahren laden</strong> — Akku erst 15 Min. abkühlen lassen.',
+    'Original-Ladegerät verwenden. Fremd-Ladegeräte können den Akku beschädigen.',
+    'Ladegerät nach Vollladung (grüne LED) abstecken, nicht dauerhaft laden.',
+  ]},
+];
+
+/* ── Helpers ─────────────────────────────────── */
+function store(key, val) {
+  try { localStorage.setItem('joyor_s5_' + key, JSON.stringify(val)); } catch(e) {}
+}
+function load(key, fallback) {
+  try { const v = localStorage.getItem('joyor_s5_' + key); return v ? JSON.parse(v) : fallback; } catch(e) { return fallback; }
+}
+
+/* ── Tabs ────────────────────────────────────── */
+const tabs = document.querySelectorAll('.tab-btn');
+const sections = document.querySelectorAll('.section');
+tabs.forEach(btn => {
+  btn.addEventListener('click', () => {
+    tabs.forEach(b => { b.classList.remove('active'); b.setAttribute('aria-selected','false'); });
+    sections.forEach(s => s.classList.remove('active'));
+    btn.classList.add('active');
+    btn.setAttribute('aria-selected','true');
+    document.getElementById(btn.dataset.tab).classList.add('active');
+  });
+});
+
+/* ── Error Codes ─────────────────────────────── */
+function sevLabel(s) {
+  const m = {low:['Gering','sev-low'],med:['Mittel','sev-med'],high:['Kritisch','sev-high']};
+  return m[s] || m.low;
+}
+function sevStripe(s) {
+  return {low:'info',med:'warn',high:'crit'}[s] || 'info';
+}
+function renderErrors(filter) {
+  const list = document.getElementById('errList');
+  const q = (filter || '').toLowerCase().trim();
+  const filtered = q ? ERRORS.filter(e =>
+    e.code.toLowerCase().includes(q) ||
+    e.title.toLowerCase().includes(q) ||
+    e.desc.toLowerCase().includes(q) ||
+    e.fix.toLowerCase().includes(q)
+  ) : ERRORS;
+
+  if (!filtered.length) {
+    list.innerHTML = '<div class="no-results">Kein Fehlercode gefunden. Versuche einen anderen Suchbegriff.</div>';
+    return;
+  }
+  list.innerHTML = filtered.map(e => {
+    const [label, cls] = sevLabel(e.sev);
+    return `<div class="card has-stripe">
+      <div class="card-stripe ${sevStripe(e.sev)}"></div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <span class="err-code">${e.code}</span>
+        <span class="err-title">${e.title}</span>
+        <span class="err-sev ${cls}">${label}</span>
+      </div>
+      <div class="err-detail">${e.desc}</div>
+      <div class="err-fix"><strong>Behebung:</strong> ${e.fix}</div>
+    </div>`;
+  }).join('');
+}
+document.getElementById('errSearch').addEventListener('input', e => renderErrors(e.target.value));
+renderErrors();
+
+/* ── Maintenance ─────────────────────────────── */
+function getDaysSince(dateStr) {
+  if (!dateStr) return Infinity;
+  return Math.floor((Date.now() - new Date(dateStr).getTime()) / 86400000);
+}
+function renderMaint() {
+  const list = document.getElementById('maintList');
+  const log = load('maint_log', {});
+  const km = load('km', 0);
+  document.getElementById('kmInput').value = km || '';
+
+  list.innerHTML = MAINT.map(m => {
+    const last = log[m.id];
+    const lastDate = last ? last.date : null;
+    const lastKm = last ? last.km : null;
+    let status = '';
+    let statusCls = '';
+    if (lastDate && m.days) {
+      const d = getDaysSince(lastDate);
+      if (d > m.days * 1.2) { status = 'Überfällig'; statusCls = 'maint-overdue'; }
+      else if (d > m.days * 0.8) { status = 'Bald fällig'; statusCls = 'maint-overdue'; }
+      else { status = 'OK'; statusCls = 'maint-ok'; }
+    } else if (lastKm !== null && m.km && km) {
+      const diff = km - lastKm;
+      if (diff > m.km * 1.1) { status = 'Überfällig'; statusCls = 'maint-overdue'; }
+      else if (diff > m.km * 0.8) { status = 'Bald fällig'; statusCls = 'maint-overdue'; }
+      else { status = 'OK'; statusCls = 'maint-ok'; }
+    }
+
+    const stripe = status === 'Überfällig' ? 'warn' : (status === 'OK' ? 'ok' : 'info');
+
+    return `<div class="card has-stripe maint-item" data-id="${m.id}">
+      <div class="card-stripe ${stripe}"></div>
+      <input type="checkbox" class="maint-check" ${lastDate ? 'checked' : ''}
+        onchange="toggleMaint('${m.id}', this.checked)" aria-label="${m.name} erledigt">
+      <div class="maint-body">
+        <div class="maint-name">${m.name}</div>
+        <div class="maint-interval">${m.interval} ${m.note ? '&middot; ' + m.note : ''}</div>
+        <div class="maint-last">
+          ${lastDate ? 'Zuletzt: <code>' + lastDate + '</code>' : 'Noch nicht erfasst'}
+          ${status ? ' <span class="' + statusCls + '">' + status + '</span>' : ''}
+          ${lastDate ? ' <input type="date" class="maint-date" value="' + lastDate + '" onchange="setMaintDate(\'' + m.id + '\', this.value)" aria-label="Datum ändern">' : ''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+window.toggleMaint = function(id, checked) {
+  const log = load('maint_log', {});
+  if (checked) {
+    const today = new Date().toISOString().split('T')[0];
+    const km = load('km', 0);
+    log[id] = { date: today, km: km };
+  } else {
+    delete log[id];
+  }
+  store('maint_log', log);
+  renderMaint();
+};
+window.setMaintDate = function(id, date) {
+  const log = load('maint_log', {});
+  if (log[id]) { log[id].date = date; }
+  store('maint_log', log);
+  renderMaint();
+};
+document.getElementById('kmSave').addEventListener('click', () => {
+  const v = parseInt(document.getElementById('kmInput').value) || 0;
+  store('km', v);
+  renderMaint();
+});
+renderMaint();
+
+/* ── P-Settings ──────────────────────────────── */
+(function() {
+  const list = document.getElementById('psetList');
+  list.innerHTML = PSETTINGS.map(p => `
+    <div class="card has-stripe pset-card" onclick="this.classList.toggle('open')">
+      <div class="card-stripe ${p.abe ? 'crit' : 'info'}"></div>
+      <div class="pset-header">
+        <span class="pset-code">${p.code}</span>
+        <span class="pset-name">${p.name}</span>
+        ${p.abe ? '<span class="pset-abe">ABE</span>' : ''}
+        <span class="pset-val">Wert: ${p.val}</span>
+        <span class="pset-arrow">&#9654;</span>
+      </div>
+      <div class="pset-detail">
+        <div><strong>Standard:</strong> ${p.def}</div>
+        <div style="margin-top:4px">${p.desc}</div>
+      </div>
+    </div>
+  `).join('');
+})();
+
+/* ── Troubleshooting ─────────────────────────── */
+(function() {
+  const list = document.getElementById('troubleList');
+  list.innerHTML = TROUBLES.map(t => `
+    <div class="card trouble-card" onclick="this.classList.toggle('open')">
+      <div class="trouble-q">
+        <span class="trouble-arrow">&#9654;</span>
+        ${t.q}
+      </div>
+      <div class="trouble-steps">
+        <ol>${t.steps.map(s => '<li>' + s + '</li>').join('')}</ol>
+      </div>
+    </div>
+  `).join('');
+})();
+</script>
