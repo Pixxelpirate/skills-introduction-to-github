@@ -1,7 +1,7 @@
-const CACHE = 'joyor-s5-v2';
+const CACHE = 'escooter-v4';
 const ASSETS = [
   './',
-  './joyor-s5-service-tool.html',
+  './index.html',
   './manifest.json',
   './icon-192.svg',
   './icon-512.svg'

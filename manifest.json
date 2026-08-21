@@ -1,8 +1,8 @@
 {
-  "name": "Joyor S5 ABE Service-Tool",
-  "short_name": "Joyor S5",
-  "description": "Selbst-Wartung, Diagnose & Referenz für den Joyor S5 ABE E-Scooter",
-  "start_url": "./joyor-s5-service-tool.html",
+  "name": "E-Scooter Service-Tool",
+  "short_name": "E-Scooter Tool",
+  "description": "Selbst-Wartung, Diagnose & Referenz für alle E-Scooter — alle Marken",
+  "start_url": "./index.html",
   "display": "standalone",
   "orientation": "portrait",
   "theme_color": "#e05a22",
