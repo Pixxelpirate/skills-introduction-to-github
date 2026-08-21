@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" rx="80" fill="#1a1d23"/>
+  <g transform="translate(256,240)" fill="none" stroke="#e05a22" stroke-width="18" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Wrench -->
+    <path d="M-55,-130 L-30,-105 L-30,-65 L-80,-15 L-120,-15 L-145,-40 L-120,-65 L-80,-65 L-55,-90Z" fill="#e05a22" stroke="none"/>
+    <line x1="-65" y1="-25" x2="80" y2="120"/>
+    <!-- Scooter wheel -->
+    <circle cx="95" cy="135" r="55" stroke-width="14"/>
+    <circle cx="95" cy="135" r="14" fill="#e05a22"/>
+    <!-- Handlebar -->
+    <line x1="-108" y1="-130" x2="-108" y2="-80"/>
+    <line x1="-135" y1="-130" x2="-80" y2="-130"/>
+  </g>
+  <text x="256" y="450" text-anchor="middle" font-family="sans-serif" font-weight="700" font-size="60" fill="#e05a22">ABE</text>
+</svg>

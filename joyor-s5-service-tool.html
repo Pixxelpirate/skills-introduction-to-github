@@ -1,4 +1,13 @@
-<title>Joyor S5 ABE Service</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#e05a22">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="E-Scooter Tool">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.svg">
+<title>E-Scooter Service-Tool</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500&family=Fira+Code:wght@400;500&display=swap">
 <style>
 :root {
@@ -331,6 +340,9 @@ body{
 .ble-btn:disabled{opacity:.4;cursor:not-allowed}
 .ble-btn-primary{background:var(--accent);color:var(--accent-text)}
 .ble-btn-primary:hover:not(:disabled){background:var(--accent-hover)}
+.conn-mode-btn{background:var(--bg-input);color:var(--text-sec)}
+.conn-mode-btn.active{background:var(--accent);color:var(--accent-text)}
+.conn-mode-btn:not(.active):hover{background:var(--border)}
 .ble-btn-sec{background:var(--bg-input);color:var(--text);border:1px solid var(--border)}
 .ble-btn-sec:hover:not(:disabled){background:var(--border)}
 
@@ -401,6 +413,23 @@ body{
   text-align:center;
 }
 
+/* Model Selector */
+.model-select-wrap{margin-bottom:16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.model-select{
+  font-family:'Barlow',sans-serif;font-size:14px;font-weight:500;
+  padding:8px 14px;border-radius:6px;
+  border:1px solid var(--border);background:var(--bg-input);color:var(--text);
+  cursor:pointer;flex:1;min-width:160px;max-width:320px;
+}
+.model-select:focus{outline:none;border-color:var(--accent)}
+.model-badge{
+  font-family:'Fira Code','Courier New',monospace;
+  font-size:11px;font-weight:500;
+  background:var(--accent);color:var(--accent-text);
+  padding:3px 8px;border-radius:3px;letter-spacing:.5px;
+  text-transform:uppercase;white-space:nowrap;
+}
+
 /* Focus */
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 
@@ -412,10 +441,27 @@ body{
 
 <div class="app">
   <header class="hdr">
-    <span class="hdr-badge">ABE</span>
-    <h1>Joyor S5 Service-Tool</h1>
-    <p class="hdr-sub">Selbst-Wartung, Diagnose &amp; Referenz</p>
+    <span class="hdr-badge" id="hdrBadge">ABE</span>
+    <h1 id="hdrTitle">E-Scooter Service-Tool</h1>
+    <p class="hdr-sub">Selbst-Wartung, Diagnose &amp; Referenz — alle Marken</p>
   </header>
+  <div class="model-select-wrap">
+    <select class="model-select" id="brandSelect" style="max-width:160px">
+      <option value="joyor">Joyor</option>
+      <option value="xiaomi">Xiaomi</option>
+      <option value="ninebot">Ninebot / Segway</option>
+      <option value="niu">NIU</option>
+      <option value="egret">Egret</option>
+      <option value="soflow">SoFlow</option>
+      <option value="etwow">E-TWOW</option>
+      <option value="vmax">VMAX</option>
+      <option value="kugoo">Kugoo</option>
+      <option value="iscooter">iScooter</option>
+      <option value="generic">Andere</option>
+    </select>
+    <select class="model-select" id="modelSelect" style="flex:1"></select>
+    <span class="model-badge" id="modelBadge">48V · 500W</span>
+  </div>
 
   <nav class="tabs" role="tablist">
     <button class="tab-btn active" role="tab" aria-selected="true" data-tab="verbinden">Verbinden</button>
@@ -428,20 +474,29 @@ body{
 
   <!-- VERBINDEN -->
   <section id="verbinden" class="section active">
-    <div id="bleNoSupport" class="ble-no-support" style="display:none">
-      <strong>Bluetooth nicht verfügbar</strong>
-      Web Bluetooth wird nur in Chrome auf Android und Chrome Desktop (mit Flag) unterstützt.
-      Öffne diese Seite in Google Chrome auf deinem Handy.
+    <div id="connNoSupport" class="ble-no-support" style="display:none">
+      <strong id="noSupportTitle">Nicht verfügbar</strong>
+      <span id="noSupportText"></span>
     </div>
     <div id="bleContent">
+      <div style="display:flex;gap:0;margin-bottom:12px;border-radius:10px;overflow:hidden;border:1px solid var(--border)">
+        <button class="conn-mode-btn active" id="modeUsb" style="flex:1;padding:10px;border:none;cursor:pointer;font-weight:600;font-size:13px;font-family:inherit;transition:all .2s">USB</button>
+        <button class="conn-mode-btn" id="modeBle" style="flex:1;padding:10px;border:none;border-left:1px solid var(--border);cursor:pointer;font-weight:600;font-size:13px;font-family:inherit;transition:all .2s">Bluetooth</button>
+      </div>
       <div class="ble-status">
         <div class="ble-dot" id="bleDot"></div>
         <span class="ble-label" id="bleLabel">Getrennt</span>
         <span class="ble-device" id="bleDevice"></span>
       </div>
-      <div class="ble-actions">
-        <button class="ble-btn ble-btn-primary" id="bleScan">Scooter suchen</button>
+      <div class="ble-actions" style="flex-wrap:wrap;gap:8px">
+        <button class="ble-btn ble-btn-primary" id="bleScan">USB verbinden</button>
         <button class="ble-btn ble-btn-sec" id="bleDisconnect" disabled>Trennen</button>
+        <select id="baudSelect" style="padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg-input);color:var(--text);font-size:13px">
+          <option value="9600">9600 Baud</option>
+          <option value="38400">38400 Baud</option>
+          <option value="57600">57600 Baud</option>
+          <option value="115200" selected>115200 Baud</option>
+        </select>
       </div>
 
       <h2 class="section-title">Live-Daten</h2>
@@ -480,13 +535,13 @@ body{
         </div>
       </div>
 
-      <h2 class="section-title">Dienste &amp; Eigenschaften</h2>
+      <h2 class="section-title">Verbindungs-Info</h2>
       <div id="bleServices" class="ble-services">
-        <div class="no-results">Nicht verbunden. Drücke "Scooter suchen" um BLE-Dienste zu entdecken.</div>
+        <div class="no-results">Nicht verbunden.</div>
       </div>
 
       <h2 class="section-title" style="margin-top:20px">Protokoll</h2>
-      <div class="ble-log" id="bleLog">Bereit. Drücke "Scooter suchen" um zu starten.</div>
+      <div class="ble-log" id="bleLog">Bereit. Verbindungsmodus wählen und verbinden.</div>
     </div>
   </section>
 
@@ -517,7 +572,7 @@ body{
       P-Parameter im LCD-Display: Bremshebel gedrückt halten + Power-Taste. Mit Bremshebel durch Parameter navigieren, kurz Power zum Ändern, lang Power zum Speichern.
     </p>
     <div id="psetList"></div>
-    <div class="card has-stripe" style="margin-top:16px">
+    <div class="card has-stripe" style="margin-top:16px" id="abeHint">
       <div class="card-stripe crit"></div>
       <div style="font-size:13px">
         <strong style="color:var(--critical)">ABE-Hinweis:</strong>
@@ -529,40 +584,11 @@ body{
   <!-- DATEN -->
   <section id="daten" class="section">
     <h2 class="section-title">Schnellreferenz</h2>
-    <div class="quick-ref">
-      <div class="qr-item"><div class="qr-label">Reifendruck</div><div class="qr-value">2.5 – 3.0 bar</div></div>
-      <div class="qr-item"><div class="qr-label">Akku voll</div><div class="qr-value">54.6 V</div></div>
-      <div class="qr-item"><div class="qr-label">Akku leer</div><div class="qr-value">39.0 V</div></div>
-      <div class="qr-item"><div class="qr-label">Bremsbelag min.</div><div class="qr-value">1.5 mm</div></div>
-      <div class="qr-item"><div class="qr-label">Ladezeit</div><div class="qr-value">6 – 8 h</div></div>
-      <div class="qr-item"><div class="qr-label">Max. Zuladung</div><div class="qr-value">120 kg</div></div>
-    </div>
-
+    <div class="quick-ref" id="quickRef"></div>
     <h2 class="section-title">Technische Daten</h2>
-    <div class="spec-grid">
-      <div class="spec-item"><div class="spec-label">Motor</div><div class="spec-value">500 W BLDC</div></div>
-      <div class="spec-item"><div class="spec-label">Nennspannung</div><div class="spec-value">48 V</div></div>
-      <div class="spec-item"><div class="spec-label">Akku</div><div class="spec-value">48V 13Ah Li-Ion</div></div>
-      <div class="spec-item"><div class="spec-label">Reichweite</div><div class="spec-value">40 – 55 km</div></div>
-      <div class="spec-item"><div class="spec-label">V-Max (ABE)</div><div class="spec-value">20 km/h</div></div>
-      <div class="spec-item"><div class="spec-label">Gewicht</div><div class="spec-value">~23 kg</div></div>
-      <div class="spec-item"><div class="spec-label">Reifen</div><div class="spec-value">10" Pneumatik</div></div>
-      <div class="spec-item"><div class="spec-label">Bremsen</div><div class="spec-value">Scheibenbremse v/h</div></div>
-      <div class="spec-item"><div class="spec-label">Schutzklasse</div><div class="spec-value">IP54</div></div>
-      <div class="spec-item"><div class="spec-label">Ladegerät</div><div class="spec-value">54.6V 2A</div></div>
-      <div class="spec-item"><div class="spec-label">Zellen</div><div class="spec-value">13S / 48V</div></div>
-      <div class="spec-item"><div class="spec-label">Zulassung</div><div class="spec-value">eKFV / ABE</div></div>
-    </div>
-
+    <div class="spec-grid" id="specGrid"></div>
     <h2 class="section-title" style="margin-top:24px">Anzugsmomente</h2>
-    <div class="spec-grid">
-      <div class="spec-item"><div class="spec-label">Lenkerklemme</div><div class="spec-value">18 – 20 Nm</div></div>
-      <div class="spec-item"><div class="spec-label">Achsmuttern</div><div class="spec-value">25 – 30 Nm</div></div>
-      <div class="spec-item"><div class="spec-label">Bremsscheibe</div><div class="spec-value">5 – 6 Nm</div></div>
-      <div class="spec-item"><div class="spec-label">Bremssattel</div><div class="spec-value">8 – 10 Nm</div></div>
-      <div class="spec-item"><div class="spec-label">Klappgelenk</div><div class="spec-value">12 – 15 Nm</div></div>
-      <div class="spec-item"><div class="spec-label">Trittbrett-Schrauben</div><div class="spec-value">8 – 10 Nm</div></div>
-    </div>
+    <div class="spec-grid" id="torqueGrid"></div>
   </section>
 
   <!-- HILFE -->
@@ -572,57 +598,189 @@ body{
   </section>
 
   <footer class="foot">
-    Joyor S5 ABE Service-Tool &middot; Daten ohne Gewähr &middot; Alle Arbeiten auf eigene Verantwortung
+<span id="footModel">E-Scooter Service-Tool</span> &middot; Daten ohne Gewähr &middot; Alle Arbeiten auf eigene Verantwortung
   </footer>
 </div>
 
 <script>
-/* ── Data ────────────────────────────────────── */
+/* ── Multi-Brand Model Database ────────────── */
+const BRANDS = {
+  joyor: {
+    label: 'Joyor',
+    errorSet: 'generic',
+    models: {
+      s5:{name:'S5',badge:'ABE',volt:48,watt:500,ah:13,vmax:20,range:'40–55',weight:23,tire:'10" Pneumatik',brakes:'Scheibenbremse v/h',ip:'IP54',charger:'54.6V 2A',cells:'13S',zulassung:'eKFV / ABE',maxLoad:120,tirePressure:'2.5–3.0',poles:15,wheelInch:10,uvp:39.0,fullV:54.6,chargeTime:'6–8'},
+      s7:{name:'S7',badge:'—',volt:48,watt:500,ah:13,vmax:25,range:'35–50',weight:22,tire:'10" Pneumatik',brakes:'Scheibenbremse v/h',ip:'IP54',charger:'54.6V 2A',cells:'13S',zulassung:'—',maxLoad:120,tirePressure:'2.5–3.0',poles:15,wheelInch:10,uvp:39.0,fullV:54.6,chargeTime:'6–8'},
+      s10s:{name:'S10-S',badge:'—',volt:48,watt:600,ah:18,vmax:25,range:'50–70',weight:26,tire:'10" Pneumatik',brakes:'Scheibenbremse v/h',ip:'IP54',charger:'54.6V 2A',cells:'13S',zulassung:'—',maxLoad:120,tirePressure:'2.5–3.0',poles:15,wheelInch:10,uvp:39.0,fullV:54.6,chargeTime:'8–10'},
+      f5s:{name:'F5S',badge:'—',volt:36,watt:350,ah:10.4,vmax:25,range:'30–40',weight:16,tire:'8" Solid',brakes:'Scheibenbremse + E-Bremse',ip:'IP54',charger:'42V 2A',cells:'10S',zulassung:'—',maxLoad:100,tirePressure:'—',poles:15,wheelInch:8,uvp:30.0,fullV:42.0,chargeTime:'4–5'},
+      f7:{name:'F7',badge:'—',volt:48,watt:500,ah:13,vmax:25,range:'35–50',weight:20,tire:'8" Pneumatik',brakes:'Scheibenbremse v/h',ip:'IP54',charger:'54.6V 2A',cells:'13S',zulassung:'—',maxLoad:120,tirePressure:'2.5–3.0',poles:15,wheelInch:8,uvp:39.0,fullV:54.6,chargeTime:'6–8'},
+      y5s:{name:'Y5S',badge:'—',volt:48,watt:500,ah:13,vmax:25,range:'35–50',weight:22,tire:'10" Pneumatik',brakes:'Scheibenbremse v/h',ip:'IP54',charger:'54.6V 2A',cells:'13S',zulassung:'—',maxLoad:120,tirePressure:'2.5–3.0',poles:15,wheelInch:10,uvp:39.0,fullV:54.6,chargeTime:'6–8'},
+      y10s:{name:'Y10-S',badge:'—',volt:48,watt:600,ah:26,vmax:25,range:'60–80',weight:28,tire:'10" Pneumatik',brakes:'Scheibenbremse v/h',ip:'IP54',charger:'54.6V 2A',cells:'13S',zulassung:'—',maxLoad:120,tirePressure:'2.5–3.0',poles:15,wheelInch:10,uvp:39.0,fullV:54.6,chargeTime:'10–12'},
+      lr8:{name:'LR8',badge:'—',volt:48,watt:800,ah:18,vmax:30,range:'40–55',weight:28,tire:'10" Pneumatik',brakes:'Scheibenbremse v/h',ip:'IP54',charger:'54.6V 3A',cells:'13S',zulassung:'—',maxLoad:150,tirePressure:'2.5–3.5',poles:15,wheelInch:10,uvp:39.0,fullV:54.6,chargeTime:'5–7'},
+    }
+  },
+  xiaomi: {
+    label: 'Xiaomi',
+    errorSet: 'xiaomi',
+    models: {
+      essential:{name:'Essential',badge:'—',volt:36,watt:250,ah:5.1,vmax:20,range:'15–20',weight:12,tire:'8.5" Pneumatik',brakes:'Scheibenbremse + E-Bremse',ip:'IP54',charger:'42V 1.7A',cells:'10S',zulassung:'—',maxLoad:100,tirePressure:'2.4–2.8',poles:15,wheelInch:8.5,uvp:30.0,fullV:42.0,chargeTime:'3.5'},
+      '1s':{name:'1S',badge:'—',volt:36,watt:300,ah:7.65,vmax:25,range:'25–30',weight:12.5,tire:'8.5" Pneumatik',brakes:'Scheibenbremse + E-Bremse',ip:'IP54',charger:'42V 1.7A',cells:'10S',zulassung:'—',maxLoad:100,tirePressure:'2.4–2.8',poles:15,wheelInch:8.5,uvp:30.0,fullV:42.0,chargeTime:'5'},
+      pro2:{name:'Pro 2',badge:'—',volt:36,watt:300,ah:12.4,vmax:25,range:'35–45',weight:14.2,tire:'8.5" Pneumatik',brakes:'Scheibenbremse + E-Bremse',ip:'IP54',charger:'42V 1.7A',cells:'10S',zulassung:'—',maxLoad:100,tirePressure:'2.4–2.8',poles:15,wheelInch:8.5,uvp:30.0,fullV:42.0,chargeTime:'8.5'},
+      mi3:{name:'Scooter 3',badge:'—',volt:36,watt:300,ah:7.65,vmax:25,range:'25–30',weight:13.2,tire:'8.5" Pneumatik',brakes:'Scheibenbremse + E-Bremse',ip:'IP54',charger:'42V 1.7A',cells:'10S',zulassung:'—',maxLoad:100,tirePressure:'2.4–2.8',poles:15,wheelInch:8.5,uvp:30.0,fullV:42.0,chargeTime:'5.5'},
+      mi4:{name:'Scooter 4',badge:'—',volt:36,watt:300,ah:10.0,vmax:25,range:'30–35',weight:14.8,tire:'10" Pneumatik',brakes:'Scheibenbremse + E-Bremse',ip:'IP55',charger:'42V 2A',cells:'10S',zulassung:'—',maxLoad:110,tirePressure:'2.4–2.8',poles:15,wheelInch:10,uvp:30.0,fullV:42.0,chargeTime:'5'},
+      mi4pro:{name:'Scooter 4 Pro',badge:'—',volt:48,watt:700,ah:12.0,vmax:25,range:'45–55',weight:16.5,tire:'10" Pneumatik',brakes:'Scheibenbremse v/h',ip:'IP55',charger:'54.6V 2A',cells:'13S',zulassung:'—',maxLoad:120,tirePressure:'2.4–2.8',poles:15,wheelInch:10,uvp:39.0,fullV:54.6,chargeTime:'6'},
+      mi4ultra:{name:'Scooter 4 Ultra',badge:'—',volt:48,watt:940,ah:12.0,vmax:25,range:'50–70',weight:24,tire:'10" Pneumatik',brakes:'Scheibenbremse v/h',ip:'IP55',charger:'54.6V 2A',cells:'13S',zulassung:'—',maxLoad:120,tirePressure:'2.4–2.8',poles:15,wheelInch:10,uvp:39.0,fullV:54.6,chargeTime:'6'},
+    }
+  },
+  ninebot: {
+    label: 'Ninebot / Segway',
+    errorSet: 'ninebot',
+    models: {
+      es2:{name:'ES2',badge:'—',volt:36,watt:300,ah:5.2,vmax:25,range:'20–25',weight:12.5,tire:'8" Solid',brakes:'E-Bremse + Fußbremse',ip:'IP54',charger:'42V 1.7A',cells:'10S',zulassung:'—',maxLoad:100,tirePressure:'—',poles:15,wheelInch:8,uvp:30.0,fullV:42.0,chargeTime:'3.5'},
+      maxg30:{name:'Max G30',badge:'—',volt:36,watt:350,ah:15.3,vmax:25,range:'55–65',weight:18.7,tire:'10" Pneumatik tubeless',brakes:'Scheibenbremse + E-Bremse',ip:'IPX5',charger:'42V 3A',cells:'10S',zulassung:'—',maxLoad:100,tirePressure:'2.4–2.8',poles:15,wheelInch:10,uvp:30.0,fullV:42.0,chargeTime:'6'},
+      maxg2:{name:'Max G2',badge:'—',volt:36,watt:450,ah:12.8,vmax:25,range:'45–55',weight:17.1,tire:'10" Pneumatik tubeless',brakes:'Scheibenbremse + E-Bremse',ip:'IPX5',charger:'42V 3A',cells:'10S',zulassung:'—',maxLoad:120,tirePressure:'2.4–2.8',poles:15,wheelInch:10,uvp:30.0,fullV:42.0,chargeTime:'5'},
+      f2:{name:'F2',badge:'—',volt:36,watt:300,ah:5.1,vmax:20,range:'15–20',weight:12.3,tire:'10" Pneumatik',brakes:'Scheibenbremse + E-Bremse',ip:'IPX5',charger:'42V 1.7A',cells:'10S',zulassung:'—',maxLoad:100,tirePressure:'2.4–2.8',poles:15,wheelInch:10,uvp:30.0,fullV:42.0,chargeTime:'3.5'},
+      f2pro:{name:'F2 Pro',badge:'—',volt:36,watt:350,ah:11.4,vmax:25,range:'40–50',weight:15,tire:'10" Pneumatik',brakes:'Scheibenbremse + E-Bremse',ip:'IPX5',charger:'42V 2A',cells:'10S',zulassung:'—',maxLoad:120,tirePressure:'2.4–2.8',poles:15,wheelInch:10,uvp:30.0,fullV:42.0,chargeTime:'6'},
+      e2:{name:'E2',badge:'—',volt:36,watt:250,ah:5.1,vmax:20,range:'15–20',weight:13,tire:'8.1" Solid',brakes:'E-Bremse + Fußbremse',ip:'IPX4',charger:'42V 1.5A',cells:'10S',zulassung:'—',maxLoad:90,tirePressure:'—',poles:15,wheelInch:8,uvp:30.0,fullV:42.0,chargeTime:'4'},
+    }
+  },
+  niu: {
+    label: 'NIU',
+    errorSet: 'generic',
+    models: {
+      kqi2pro:{name:'KQi2 Pro',badge:'—',volt:48,watt:300,ah:9.6,vmax:25,range:'35–40',weight:16,tire:'10" Pneumatik',brakes:'Scheibenbremse v/h',ip:'IPX5',charger:'54.6V 2A',cells:'13S',zulassung:'—',maxLoad:100,tirePressure:'2.4–2.8',poles:15,wheelInch:10,uvp:39.0,fullV:54.6,chargeTime:'5'},
+      kqi3pro:{name:'KQi3 Pro',badge:'—',volt:48,watt:350,ah:12.5,vmax:25,range:'40–50',weight:17.5,tire:'9.5" Pneumatik tubeless',brakes:'Scheibenbremse v/h',ip:'IPX5',charger:'54.6V 2A',cells:'13S',zulassung:'—',maxLoad:100,tirePressure:'2.4–2.8',poles:15,wheelInch:9.5,uvp:39.0,fullV:54.6,chargeTime:'6'},
+      kqi3max:{name:'KQi3 Max',badge:'—',volt:48,watt:450,ah:15.3,vmax:25,range:'50–65',weight:19.5,tire:'9.5" Pneumatik tubeless',brakes:'Scheibenbremse v/h',ip:'IPX5',charger:'54.6V 2A',cells:'13S',zulassung:'—',maxLoad:100,tirePressure:'2.4–2.8',poles:15,wheelInch:9.5,uvp:39.0,fullV:54.6,chargeTime:'7'},
+    }
+  },
+  egret: {
+    label: 'Egret',
+    errorSet: 'generic',
+    models: {
+      tenv4:{name:'Ten V4',badge:'ABE',volt:48,watt:500,ah:12.5,vmax:20,range:'40–50',weight:17.5,tire:'10" Pneumatik',brakes:'Scheibenbremse v/h',ip:'IPX4',charger:'54.6V 2A',cells:'13S',zulassung:'eKFV / ABE',maxLoad:100,tirePressure:'2.5–3.0',poles:15,wheelInch:10,uvp:39.0,fullV:54.6,chargeTime:'6–7'},
+      eightv3:{name:'Eight V3',badge:'ABE',volt:36,watt:350,ah:10.5,vmax:20,range:'30–40',weight:14,tire:'8" Pneumatik',brakes:'Scheibenbremse + E-Bremse',ip:'IPX4',charger:'42V 2A',cells:'10S',zulassung:'eKFV / ABE',maxLoad:100,tirePressure:'2.5–3.0',poles:15,wheelInch:8,uvp:30.0,fullV:42.0,chargeTime:'5'},
+    }
+  },
+  soflow: {
+    label: 'SoFlow',
+    errorSet: 'generic',
+    models: {
+      so4:{name:'SO4',badge:'ABE',volt:36,watt:350,ah:7.8,vmax:20,range:'25–30',weight:14,tire:'8.5" Pneumatik',brakes:'Scheibenbremse + E-Bremse',ip:'IP54',charger:'42V 2A',cells:'10S',zulassung:'eKFV / ABE',maxLoad:100,tirePressure:'2.4–2.8',poles:15,wheelInch:8.5,uvp:30.0,fullV:42.0,chargeTime:'4'},
+      so6:{name:'SO6',badge:'ABE',volt:36,watt:350,ah:7.8,vmax:20,range:'25–35',weight:15,tire:'10" Pneumatik',brakes:'Scheibenbremse + E-Bremse',ip:'IP54',charger:'42V 2A',cells:'10S',zulassung:'eKFV / ABE',maxLoad:120,tirePressure:'2.4–2.8',poles:15,wheelInch:10,uvp:30.0,fullV:42.0,chargeTime:'4'},
+    }
+  },
+  etwow: {
+    label: 'E-TWOW',
+    errorSet: 'generic',
+    models: {
+      gt:{name:'Booster GT',badge:'—',volt:36,watt:700,ah:10.5,vmax:35,range:'30–40',weight:11,tire:'8" Solid',brakes:'E-Bremse + Fußbremse',ip:'IP53',charger:'42V 2A',cells:'10S',zulassung:'—',maxLoad:100,tirePressure:'—',poles:15,wheelInch:8,uvp:30.0,fullV:42.0,chargeTime:'5'},
+      s2:{name:'Booster S2',badge:'—',volt:36,watt:500,ah:10.5,vmax:30,range:'25–35',weight:10.8,tire:'8" Solid',brakes:'E-Bremse + Fußbremse',ip:'IP53',charger:'42V 2A',cells:'10S',zulassung:'—',maxLoad:100,tirePressure:'—',poles:15,wheelInch:8,uvp:30.0,fullV:42.0,chargeTime:'4'},
+    }
+  },
+  vmax: {
+    label: 'VMAX',
+    errorSet: 'generic',
+    models: {
+      vx2st:{name:'VX2 ST',badge:'ABE',volt:36,watt:350,ah:7.8,vmax:20,range:'25–35',weight:14,tire:'10" Pneumatik',brakes:'Scheibenbremse + E-Bremse',ip:'IP54',charger:'42V 2A',cells:'10S',zulassung:'eKFV / ABE',maxLoad:120,tirePressure:'2.5–3.0',poles:15,wheelInch:10,uvp:30.0,fullV:42.0,chargeTime:'4'},
+      vx4:{name:'VX4',badge:'—',volt:48,watt:500,ah:15,vmax:25,range:'40–55',weight:22,tire:'10" Pneumatik',brakes:'Scheibenbremse v/h',ip:'IP54',charger:'54.6V 2A',cells:'13S',zulassung:'—',maxLoad:120,tirePressure:'2.5–3.0',poles:15,wheelInch:10,uvp:39.0,fullV:54.6,chargeTime:'7'},
+    }
+  },
+  kugoo: {
+    label: 'Kugoo',
+    errorSet: 'generic',
+    models: {
+      s1:{name:'S1',badge:'—',volt:36,watt:350,ah:7.5,vmax:25,range:'20–25',weight:11,tire:'8" Solid',brakes:'E-Bremse + Fußbremse',ip:'IP54',charger:'42V 2A',cells:'10S',zulassung:'—',maxLoad:100,tirePressure:'—',poles:15,wheelInch:8,uvp:30.0,fullV:42.0,chargeTime:'4'},
+      s3:{name:'S3',badge:'—',volt:36,watt:350,ah:7.5,vmax:25,range:'20–25',weight:12,tire:'8" Honeycomb',brakes:'Scheibenbremse + E-Bremse',ip:'IP54',charger:'42V 2A',cells:'10S',zulassung:'—',maxLoad:100,tirePressure:'—',poles:15,wheelInch:8,uvp:30.0,fullV:42.0,chargeTime:'4'},
+      m4pro:{name:'M4 Pro',badge:'—',volt:48,watt:500,ah:18,vmax:30,range:'40–55',weight:22,tire:'10" Pneumatik',brakes:'Scheibenbremse v/h',ip:'IP54',charger:'54.6V 2A',cells:'13S',zulassung:'—',maxLoad:150,tirePressure:'2.5–3.0',poles:15,wheelInch:10,uvp:39.0,fullV:54.6,chargeTime:'8'},
+    }
+  },
+  iscooter: {
+    label: 'iScooter',
+    errorSet: 'generic',
+    models: {
+      i9:{name:'i9',badge:'—',volt:36,watt:350,ah:7.5,vmax:25,range:'20–25',weight:13,tire:'8.5" Honeycomb',brakes:'Scheibenbremse + E-Bremse',ip:'IP54',charger:'42V 2A',cells:'10S',zulassung:'—',maxLoad:100,tirePressure:'—',poles:15,wheelInch:8.5,uvp:30.0,fullV:42.0,chargeTime:'4'},
+      ix3:{name:'iX3',badge:'—',volt:48,watt:800,ah:10,vmax:30,range:'25–35',weight:17,tire:'10" Pneumatik',brakes:'Scheibenbremse v/h',ip:'IP54',charger:'54.6V 2A',cells:'13S',zulassung:'—',maxLoad:150,tirePressure:'2.5–3.0',poles:15,wheelInch:10,uvp:39.0,fullV:54.6,chargeTime:'5'},
+      ix5:{name:'iX5',badge:'—',volt:48,watt:1000,ah:15,vmax:35,range:'35–50',weight:25,tire:'10" Pneumatik',brakes:'Scheibenbremse v/h',ip:'IP54',charger:'54.6V 2A',cells:'13S',zulassung:'—',maxLoad:150,tirePressure:'2.5–3.0',poles:15,wheelInch:10,uvp:39.0,fullV:54.6,chargeTime:'7'},
+    }
+  },
+  generic: {
+    label: 'Andere',
+    errorSet: 'generic',
+    models: {
+      v36:{name:'36V Scooter',badge:'—',volt:36,watt:350,ah:7.5,vmax:25,range:'20–30',weight:14,tire:'8.5" Pneumatik',brakes:'Scheibenbremse + E-Bremse',ip:'IP54',charger:'42V 2A',cells:'10S',zulassung:'—',maxLoad:100,tirePressure:'2.4–2.8',poles:15,wheelInch:8.5,uvp:30.0,fullV:42.0,chargeTime:'4'},
+      v48:{name:'48V Scooter',badge:'—',volt:48,watt:500,ah:13,vmax:25,range:'35–50',weight:20,tire:'10" Pneumatik',brakes:'Scheibenbremse v/h',ip:'IP54',charger:'54.6V 2A',cells:'13S',zulassung:'—',maxLoad:120,tirePressure:'2.5–3.0',poles:15,wheelInch:10,uvp:39.0,fullV:54.6,chargeTime:'6–8'},
+      v60:{name:'60V Scooter',badge:'—',volt:60,watt:1000,ah:18,vmax:40,range:'40–60',weight:28,tire:'10" Pneumatik',brakes:'Scheibenbremse v/h',ip:'IP54',charger:'67.2V 2A',cells:'16S',zulassung:'—',maxLoad:150,tirePressure:'2.5–3.5',poles:15,wheelInch:10,uvp:48.0,fullV:67.2,chargeTime:'8–10'},
+    }
+  },
+};
 
-const ERRORS = [
-  {code:'E01',title:'Gasgriff-Fehler',sev:'high',
-   desc:'Gasgriff liefert ungültiges Signal beim Einschalten.',
-   fix:'Gasgriff-Stecker prüfen und reinigen. Gasgriff bei ausgeschaltetem Scooter nicht betätigen. Stecker am Controller (3-polig, rot/schwarz/grün) kontrollieren. Bei Defekt: Gasgriff tauschen (Hallsensor-Typ, 1-4.2V).'},
-  {code:'E02',title:'Bremssensor-Fehler',sev:'high',
-   desc:'Bremshebel-Sensor meldet Dauerbremsung oder kein Signal.',
-   fix:'Bremshebel-Kabel am Controller prüfen (2-polig). Bremshebel mehrmals betätigen. Hebelstellung und Rückstellfeder kontrollieren. Magnetschalter im Bremshebel auf Verschmutzung prüfen.'},
-  {code:'E03',title:'Phasenkabel-Fehler',sev:'high',
-   desc:'Eine oder mehrere der drei Motorphasen (U/V/W) sind unterbrochen oder kurzgeschlossen.',
-   fix:'Drei dicke Motorkabel (gelb/grün/blau) am Controller prüfen. Stecker auf Korrosion, Schmorspuren oder lockeren Sitz kontrollieren. Kabel auf Knicke und Brüche entlang des Lenkerschafts prüfen. Bei intakten Kabeln: Motor oder Controller defekt.'},
-  {code:'E04',title:'Hall-Sensor-Fehler',sev:'med',
-   desc:'Motor-Hallsensor liefert ungültiges Signal. Motor dreht ungleichmäßig oder gar nicht.',
-   fix:'Hall-Sensor-Stecker am Controller prüfen (5-polig, dünn). Kabel auf Bruch prüfen, besonders an der Hinterradachse. Multimeter: 5V zwischen rot und schwarz messen. Bei Defekt: Hallsensor im Motor tauschen oder Motor ersetzen.'},
-  {code:'E05',title:'Controller-Fehler',sev:'high',
-   desc:'Interner Fehler im Motorcontroller. Scooter startet nicht oder schaltet ab.',
-   fix:'Alle Stecker am Controller abziehen und neu stecken. Akku 30 Sekunden trennen (Hauptstecker ziehen), dann neu verbinden. Auf Schmorgeruch am Controller prüfen. Bei wiederholtem Fehler: Controller tauschen (48V, passendes Modell).'},
-  {code:'E06',title:'Unterspannung',sev:'med',
-   desc:'Akkuspannung unter Mindestgrenze (ca. 39V). BMS hat abgeschaltet.',
-   fix:'Akku vollständig laden. Ladegerät-LED prüfen (rot=lädt, grün=voll). Spannung am Ladebuchse messen: 54.6V bei vollem Ladegerät. Bei schnellem Spannungsabfall: Zellbalancing oder defekte Zellen. Akku nicht tiefentladen lagern.'},
-  {code:'E07',title:'Überspannung',sev:'med',
-   desc:'Akkuspannung über Maximum. Kann bei Rekuperation an vollem Akku auftreten.',
-   fix:'Akku nicht direkt nach dem Laden bergab fahren. Bei häufigem Auftreten: Rekuperationsstärke in P09 reduzieren. Ladegerät-Ausgangsspannung prüfen (muss 54.6V ± 0.5V sein). Defektes Ladegerät kann Überspannung verursachen.'},
-  {code:'E08',title:'Kommunikationsfehler',sev:'low',
-   desc:'Datenübertragung zwischen Display und Controller gestört.',
-   fix:'Display-Kabel am Controller prüfen (5-polig oder 6-polig). Steckverbindung reinigen. Kabel am Lenker auf Quetschung prüfen. Scooter aus/einschalten. Bei Dauerfehler: Display-Platine oder Kabel defekt.'},
-  {code:'E09',title:'BMS-Fehler',sev:'high',
-   desc:'Battery Management System meldet kritischen Zustand.',
-   fix:'Akku abkühlen lassen, nicht bei extremen Temperaturen laden. BMS-Reset: Akku komplett entladen (bis Scooter abschaltet), dann voll laden. Bei wiederholtem Fehler: BMS-Platine im Akku defekt, Fachbetrieb aufsuchen.'},
-  {code:'E10',title:'Überstrom-Schutz',sev:'med',
-   desc:'Controller hat zu hohen Strom gemessen. Tritt bei Überlastung oder Kurzschluss auf.',
-   fix:'Steigung reduzieren, Zuladung prüfen (max. 120 kg). Motorkabel auf Kurzschluss prüfen. Bei kaltem Wetter: Akku vorwärmen. Wenn bei Normalbetrieb: Controller-Stromsensor oder MOSFETs defekt.'},
-  {code:'E11',title:'Motor-Überlast',sev:'med',
-   desc:'Motor überhitzt durch Dauerlast (lange Steigung, Gegenwind, Übergewicht).',
-   fix:'Scooter 10-15 Minuten abkühlen lassen. Steigung meiden oder teilweise schieben. Zuladung reduzieren. Reifendruck prüfen (zu niedrig = mehr Rollwiderstand). Motor-Temperatursensor prüfen wenn bei Normalbetrieb.'},
-  {code:'E12',title:'Temperatursensor-Fehler',sev:'low',
-   desc:'Temperaturfühler im Motor oder Controller liefert kein gültiges Signal.',
-   fix:'Sensor-Stecker am Controller prüfen. Kabel auf Bruch kontrollieren. Scooter kann ohne Temperatursensor betrieben werden (kein Überhitzungsschutz). Sensor bei nächster Gelegenheit ersetzen.'},
-  {code:'E13',title:'Akku-Temperaturfehler',sev:'med',
-   desc:'Akku-Temperatur außerhalb des sicheren Bereichs (unter 0°C oder über 45°C).',
-   fix:'Nicht bei Frost oder in praller Sonne laden. Akku auf Raumtemperatur bringen. Betriebstemperatur: -10°C bis 40°C, Ladetemperatur: 0°C bis 45°C. Bei Fehler trotz normaler Temperatur: NTC-Sensor im Akkupack defekt.'},
-  {code:'E14',title:'Drehzahlsensor-Fehler',sev:'low',
-   desc:'Drehzahlmessung am Motor fehlerhaft. Geschwindigkeitsanzeige falsch oder Null.',
-   fix:'Hall-Sensor-Kabel prüfen (gleicher Stecker wie E04). Magnete am Motorrotor auf Beschädigung prüfen. Geschwindigkeitsanzeige kalibrieren über P06 (Raddurchmesser). Bei falschem Tacho ohne Fehlercode: P08 (Motorpole) prüfen.'},
-];
+let currentBrand = 'joyor';
+let currentModel = 's5';
+
+function getBrand() { return BRANDS[currentBrand] || BRANDS.joyor; }
+function getModel() {
+  const brand = getBrand();
+  return brand.models[currentModel] || brand.models[Object.keys(brand.models)[0]];
+}
+function getFullName() {
+  const b = getBrand();
+  const m = getModel();
+  return b.label + ' ' + m.name;
+}
+
+/* ── Error Code Sets (per brand family) ──────── */
+const ERROR_SETS = {
+  generic: [
+    {code:'E01',title:'Gasgriff-Fehler',sev:'high',desc:'Gasgriff liefert ungültiges Signal beim Einschalten.',fix:'Gasgriff-Stecker prüfen und reinigen. Stecker am Controller (3-polig) kontrollieren. Bei Defekt: Gasgriff tauschen (Hallsensor-Typ, 1–4.2V).'},
+    {code:'E02',title:'Bremssensor-Fehler',sev:'high',desc:'Bremshebel-Sensor meldet Dauerbremsung oder kein Signal.',fix:'Bremshebel-Kabel am Controller prüfen (2-polig). Bremshebel mehrmals betätigen. Magnetschalter im Bremshebel auf Verschmutzung prüfen.'},
+    {code:'E03',title:'Phasenkabel-Fehler',sev:'high',desc:'Motorphasen (U/V/W) unterbrochen oder kurzgeschlossen.',fix:'Drei Motorkabel (gelb/grün/blau) am Controller prüfen. Stecker auf Korrosion und lockeren Sitz kontrollieren.'},
+    {code:'E04',title:'Hall-Sensor-Fehler',sev:'med',desc:'Motor-Hallsensor liefert ungültiges Signal.',fix:'Hall-Sensor-Stecker am Controller prüfen (5-polig). Kabel auf Bruch prüfen. Multimeter: 5V zwischen rot und schwarz.'},
+    {code:'E05',title:'Controller-Fehler',sev:'high',desc:'Interner Fehler im Motorcontroller.',fix:'Alle Stecker am Controller neu stecken. Akku 30 Sek. trennen. Bei wiederholtem Fehler: Controller tauschen.'},
+    {code:'E06',title:'Unterspannung',sev:'med',desc:'Akkuspannung unter Mindestgrenze. BMS hat abgeschaltet.',fix:'Akku vollständig laden. Ladegerät-LED prüfen. Spannung messen. Bei schnellem Abfall: Zellbalancing prüfen.'},
+    {code:'E07',title:'Überspannung',sev:'med',desc:'Akkuspannung über Maximum.',fix:'Nicht direkt nach dem Laden bergab fahren. Rekuperation reduzieren. Ladegerät-Spannung prüfen.'},
+    {code:'E08',title:'Kommunikationsfehler',sev:'low',desc:'Display-Controller-Kommunikation gestört.',fix:'Display-Kabel am Controller prüfen. Stecker reinigen. Kabel auf Quetschung prüfen.'},
+    {code:'E09',title:'BMS-Fehler',sev:'high',desc:'Battery Management System meldet kritischen Zustand.',fix:'Akku abkühlen lassen. BMS-Reset: komplett entladen, dann voll laden. Bei wiederholtem Fehler: Fachbetrieb.'},
+    {code:'E10',title:'Überstrom-Schutz',sev:'med',desc:'Zu hoher Strom gemessen.',fix:'Steigung/Zuladung reduzieren. Motorkabel auf Kurzschluss prüfen.'},
+    {code:'E11',title:'Motor-Überlast',sev:'med',desc:'Motor überhitzt durch Dauerlast.',fix:'10–15 Min. abkühlen lassen. Zuladung reduzieren. Reifendruck prüfen.'},
+    {code:'E12',title:'Temperatursensor-Fehler',sev:'low',desc:'Temperaturfühler liefert kein Signal.',fix:'Sensor-Stecker prüfen. Kabel auf Bruch kontrollieren.'},
+    {code:'E13',title:'Akku-Temperaturfehler',sev:'med',desc:'Akku-Temperatur außerhalb des sicheren Bereichs.',fix:'Nicht bei Frost/Hitze laden. Akku auf Raumtemperatur bringen.'},
+    {code:'E14',title:'Drehzahlsensor-Fehler',sev:'low',desc:'Drehzahlmessung fehlerhaft.',fix:'Hall-Sensor-Kabel prüfen. Magnete am Motorrotor kontrollieren.'},
+  ],
+  xiaomi: [
+    {code:'10',title:'Batterie-Überstrom',sev:'high',desc:'Zu hoher Entladestrom erkannt.',fix:'Steigung reduzieren, Zuladung prüfen. Akku abkühlen lassen. Bei Wiederholung: BMS oder Zellen defekt.'},
+    {code:'11',title:'Gasgriff-Fehler',sev:'high',desc:'Gasgriff-Signal ungültig beim Einschalten.',fix:'Gasgriff nicht betätigen beim Einschalten. Stecker am Controller prüfen. Gasgriff tauschen bei Defekt.'},
+    {code:'12',title:'Bremshebel-Fehler',sev:'high',desc:'Bremssensor meldet Dauerbremsung.',fix:'Bremshebel-Kabel prüfen. Hebelstellung kontrollieren. Sensor auf Verschmutzung prüfen.'},
+    {code:'14',title:'Hall-Sensor-Fehler',sev:'med',desc:'Motor-Hallsensor defekt. Motor ruckelt oder dreht nicht.',fix:'5-poligen Stecker am Controller prüfen. Kabel auf Bruch kontrollieren. Bei Defekt: Motor tauschen.'},
+    {code:'15',title:'Motor-Phasenfehler',sev:'high',desc:'Motorphasen-Kurzschluss oder Unterbrechung.',fix:'Drei dicke Motorkabel prüfen. Stecker auf Korrosion kontrollieren.'},
+    {code:'18',title:'Serielle Kommunikation',sev:'low',desc:'Kommunikation Display ↔ Controller gestört.',fix:'Display-Kabel prüfen (Flachbandkabel am Lenker). Stecker reinigen. Scooter neu starten.'},
+    {code:'21',title:'BMS-Kommunikation',sev:'med',desc:'Controller kann BMS nicht erreichen.',fix:'Akku-Stecker prüfen. Akku 30 Sek. trennen. BMS-Kabel im Akkupack kontrollieren (Fachbetrieb).'},
+    {code:'22',title:'Controller-Fehler',sev:'high',desc:'Interner Controller-Defekt.',fix:'Alle Stecker neu stecken. Akku trennen/verbinden. Controller tauschen bei Wiederholung.'},
+    {code:'23',title:'Batterie-Überspannung',sev:'med',desc:'Akkuspannung zu hoch (z.B. bei Rekuperation bergab).',fix:'Nicht mit vollem Akku bergab fahren. Ladegerät-Spannung prüfen (42V ± 0.5V).'},
+    {code:'24',title:'Batterie-Unterspannung',sev:'med',desc:'Akku fast leer, BMS schaltet ab.',fix:'Akku vollständig laden. Bei schnellem Spannungsabfall: Zelle defekt, Fachbetrieb.'},
+    {code:'25',title:'Batterie-Temperatur',sev:'med',desc:'Akku zu heiß oder zu kalt.',fix:'Nicht bei Frost laden. Akku auf Raumtemperatur bringen. Betrieb: -10° bis 40°C.'},
+    {code:'26',title:'Motor-Übertemperatur',sev:'med',desc:'Motor überhitzt.',fix:'10–15 Min. abkühlen. Steigung meiden. Zuladung reduzieren.'},
+    {code:'27',title:'Motor-Überlast',sev:'med',desc:'Motor dauerhaft überlastet.',fix:'Fahrweise anpassen, Steigungen meiden. Reifendruck prüfen.'},
+    {code:'35',title:'Controller-Sicherung',sev:'high',desc:'Interne Controller-Sicherung ausgelöst.',fix:'Controller-Reset: Akku 30 Sek. trennen. Bei Wiederholung: Controller tauschen.'},
+    {code:'39',title:'Serieller Bus-Fehler',sev:'low',desc:'Interne Kommunikation gestört.',fix:'Scooter aus/einschalten. Display-Kabel und Akkustecker prüfen.'},
+  ],
+  ninebot: [
+    {code:'10',title:'Überstrom',sev:'high',desc:'Zu hoher Strom am Controller.',fix:'Zuladung reduzieren. Motorkabel auf Kurzschluss prüfen. Controller-Reset.'},
+    {code:'11',title:'Gasgriff-Fehler',sev:'high',desc:'Gasgriff-Signal außerhalb des Bereichs.',fix:'Gasgriff beim Einschalten nicht betätigen. Stecker prüfen. Gasgriff ersetzen bei Defekt.'},
+    {code:'12',title:'Bremsfehler',sev:'high',desc:'Bremssensor-Signal ungültig.',fix:'Bremshebelkabel und Stecker prüfen. Sensor reinigen.'},
+    {code:'14',title:'Hall-Sensor',sev:'med',desc:'Motor-Positionssensor defekt.',fix:'Hall-Sensor-Stecker prüfen. Kabel auf Bruch kontrollieren.'},
+    {code:'15',title:'Motorphasen',sev:'high',desc:'Kurzschluss oder Unterbrechung der Motorphasen.',fix:'Motorkabel auf Beschädigung und lockere Verbindungen prüfen.'},
+    {code:'18',title:'Kommunikation',sev:'low',desc:'Serielle Verbindung zum Display gestört.',fix:'Display-Kabel prüfen. Scooter neu starten.'},
+    {code:'21',title:'BMS-Fehler',sev:'med',desc:'Battery Management System nicht erreichbar.',fix:'Akku trennen und neu verbinden. BMS-Reset versuchen.'},
+    {code:'22',title:'Controller intern',sev:'high',desc:'Controller-Hardwarefehler.',fix:'Reset versuchen. Bei Wiederholung: Controller tauschen.'},
+    {code:'23',title:'Überspannung',sev:'med',desc:'Akkuspannung über Limit.',fix:'Ladegerät prüfen. Nicht mit vollem Akku bergab fahren.'},
+    {code:'24',title:'Unterspannung',sev:'med',desc:'Akkuspannung unter Minimum.',fix:'Akku vollständig laden. Bei weiterem Abfall: Zelle defekt.'},
+    {code:'26',title:'Motor-Temperatur',sev:'med',desc:'Motor zu heiß.',fix:'Abkühlen lassen. Belastung reduzieren.'},
+    {code:'27',title:'Akku-Temperatur',sev:'med',desc:'Akku-Temperatur außerhalb des Bereichs.',fix:'Nicht bei Frost laden. Auf 10–25°C bringen.'},
+    {code:'39',title:'Firmware-Fehler',sev:'low',desc:'Interner Software-Fehler.',fix:'Scooter mehrfach neu starten. Firmware über App aktualisieren.'},
+    {code:'42',title:'Rad blockiert',sev:'high',desc:'Motor/Rad kann sich nicht drehen.',fix:'Fremdkörper entfernen. Bremse lösen. Achse auf Verformung prüfen.'},
+    {code:'44',title:'Lenker-Sensor',sev:'low',desc:'Klappmechanismus-Sensor defekt.',fix:'Klappverriegelung prüfen. Sensor-Kabel kontrollieren.'},
+  ],
+};
 
 const MAINT = [
   {id:'tire_pressure',name:'Reifendruck prüfen',interval:'Alle 2 Wochen',days:14,
@@ -651,38 +809,42 @@ const MAINT = [
    note:'10-Zoll-Luftreifen. Schlauch beim Wechsel immer mit erneuern. Reifenheber verwenden.'},
 ];
 
-const PSETTINGS = [
-  {code:'P01',name:'Startmodus',val:'0 / 1',def:'1',abe:false,
-   desc:'0 = Nullstart (fährt aus dem Stand los), 1 = Kickstart (erst anschieben, dann Gas). Kickstart ist sicherer und schont den Motor.'},
-  {code:'P02',name:'Tempomat',val:'0 / 1',def:'0',abe:false,
-   desc:'0 = Aus, 1 = An. Hält die aktuelle Geschwindigkeit nach 5 Sek. konstantem Gas. Bremsen deaktiviert den Tempomat.'},
-  {code:'P03',name:'Geschwindigkeitslimit',val:'0–100%',def:'100',abe:true,
-   desc:'Maximale Geschwindigkeit in Prozent. ABE-Version ist auf 20 km/h limitiert. Änderung führt zum Erlöschen der ABE.'},
-  {code:'P04',name:'Nennspannung',val:'36 / 48 / 52 / 60',def:'48',abe:true,
-   desc:'Akkuspannung des Systems. Muss auf 48V stehen. Falsche Einstellung kann Controller oder Motor beschädigen.'},
-  {code:'P05',name:'Leistungsstufe',val:'1–5',def:'5',abe:true,
-   desc:'Maximale Motorleistung. ABE-Version ist auf die zugelassene Leistungsstufe begrenzt.'},
-  {code:'P06',name:'Raddurchmesser',val:'5–12 Zoll',def:'10',abe:false,
-   desc:'Für korrekte Geschwindigkeitsanzeige. Joyor S5 = 10 Zoll. Falsche Einstellung verfälscht Tacho und Kilometerstand.'},
-  {code:'P07',name:'Einheit',val:'0 / 1',def:'0',abe:false,
-   desc:'0 = km/h, 1 = mph. In Deutschland km/h verwenden.'},
-  {code:'P08',name:'Motorpole',val:'Polzahl',def:'15',abe:false,
-   desc:'Anzahl der Magnetpole im Motor. Joyor S5 = 15 Pole. Beeinflusst Tachogenauigkeit. Nur ändern wenn neuer Motor verbaut wird.'},
-  {code:'P09',name:'Rekuperation',val:'0–5',def:'2',abe:false,
-   desc:'Stärke der Energierückgewinnung beim Bremsen. 0 = Aus, 5 = Maximum. Höhere Werte = stärkere Motorbremse, mehr Reichweite, aber ruckartigeres Bremsen.'},
-  {code:'P10',name:'Display-Helligkeit',val:'1–3',def:'2',abe:false,
-   desc:'1 = Dunkel, 2 = Normal, 3 = Hell. Höhere Helligkeit bei Sonnenlicht, niedrigere spart minimal Strom.'},
-  {code:'P11',name:'E-Bremse',val:'0 / 1',def:'1',abe:false,
-   desc:'0 = Aus, 1 = An. Elektronische Bremse über den Motor. Ergänzt die mechanische Scheibenbremse.'},
-  {code:'P12',name:'ABS-Modus',val:'0 / 1',def:'0',abe:false,
-   desc:'0 = Aus, 1 = An. Anti-Blockier-System für die E-Bremse. Verhindert Blockieren des Hinterrads bei Nässe.'},
-  {code:'P13',name:'Fehler-Reset',val:'Aktion',def:'—',abe:false,
-   desc:'Löscht gespeicherte Fehlercodes. Nur nach Behebung der Ursache verwenden. Setzt den Fehlerspeicher zurück.'},
-  {code:'P14',name:'Unterspannungsschutz',val:'Volt',def:'39.0',abe:true,
-   desc:'Abschaltspannung zum Schutz des Akkus. Standard 39.0V (3.0V/Zelle). Tiefere Werte verkürzen die Akku-Lebensdauer erheblich.'},
-  {code:'P15',name:'Werksreset',val:'Aktion',def:'—',abe:false,
-   desc:'Setzt alle P-Parameter auf Werkseinstellungen zurück. ABE-Werte werden wiederhergestellt.'},
-];
+function getPSettings() {
+  const m = getModel();
+  const isAbe = m.badge === 'ABE';
+  return [
+    {code:'P01',name:'Startmodus',val:'0 / 1',def:'1',abe:false,
+     desc:'0 = Nullstart (fährt aus dem Stand los), 1 = Kickstart (erst anschieben, dann Gas). Kickstart ist sicherer und schont den Motor.'},
+    {code:'P02',name:'Tempomat',val:'0 / 1',def:'0',abe:false,
+     desc:'0 = Aus, 1 = An. Hält die aktuelle Geschwindigkeit nach 5 Sek. konstantem Gas. Bremsen deaktiviert den Tempomat.'},
+    {code:'P03',name:'Geschwindigkeitslimit',val:'0–100%',def:'100',abe:isAbe,
+     desc:'Maximale Geschwindigkeit in Prozent.' + (isAbe ? ' ABE-Version ist auf ' + m.vmax + ' km/h limitiert. Änderung führt zum Erlöschen der ABE.' : ' V-Max: ' + m.vmax + ' km/h.')},
+    {code:'P04',name:'Nennspannung',val:'36 / 48 / 52 / 60',def:String(m.volt),abe:true,
+     desc:'Akkuspannung des Systems. Muss auf ' + m.volt + 'V stehen. Falsche Einstellung kann Controller oder Motor beschädigen.'},
+    {code:'P05',name:'Leistungsstufe',val:'1–5',def:'5',abe:isAbe,
+     desc:'Maximale Motorleistung.' + (isAbe ? ' ABE-Version ist auf die zugelassene Leistungsstufe begrenzt.' : '')},
+    {code:'P06',name:'Raddurchmesser',val:'5–12 Zoll',def:String(m.wheelInch),abe:false,
+     desc:'Für korrekte Geschwindigkeitsanzeige. ' + m.name + ' = ' + m.wheelInch + ' Zoll. Falsche Einstellung verfälscht Tacho und Kilometerstand.'},
+    {code:'P07',name:'Einheit',val:'0 / 1',def:'0',abe:false,
+     desc:'0 = km/h, 1 = mph. In Deutschland km/h verwenden.'},
+    {code:'P08',name:'Motorpole',val:'Polzahl',def:String(m.poles),abe:false,
+     desc:'Anzahl der Magnetpole im Motor. ' + m.name + ' = ' + m.poles + ' Pole. Beeinflusst Tachogenauigkeit. Nur ändern wenn neuer Motor verbaut wird.'},
+    {code:'P09',name:'Rekuperation',val:'0–5',def:'2',abe:false,
+     desc:'Stärke der Energierückgewinnung beim Bremsen. 0 = Aus, 5 = Maximum. Höhere Werte = stärkere Motorbremse, mehr Reichweite, aber ruckartigeres Bremsen.'},
+    {code:'P10',name:'Display-Helligkeit',val:'1–3',def:'2',abe:false,
+     desc:'1 = Dunkel, 2 = Normal, 3 = Hell. Höhere Helligkeit bei Sonnenlicht, niedrigere spart minimal Strom.'},
+    {code:'P11',name:'E-Bremse',val:'0 / 1',def:'1',abe:false,
+     desc:'0 = Aus, 1 = An. Elektronische Bremse über den Motor. Ergänzt die mechanische Scheibenbremse.'},
+    {code:'P12',name:'ABS-Modus',val:'0 / 1',def:'0',abe:false,
+     desc:'0 = Aus, 1 = An. Anti-Blockier-System für die E-Bremse. Verhindert Blockieren des Hinterrads bei Nässe.'},
+    {code:'P13',name:'Fehler-Reset',val:'Aktion',def:'—',abe:false,
+     desc:'Löscht gespeicherte Fehlercodes. Nur nach Behebung der Ursache verwenden. Setzt den Fehlerspeicher zurück.'},
+    {code:'P14',name:'Unterspannungsschutz',val:'Volt',def:m.uvp.toFixed(1),abe:true,
+     desc:'Abschaltspannung zum Schutz des Akkus. Standard ' + m.uvp.toFixed(1) + 'V (' + (m.uvp / parseInt(m.cells)).toFixed(1) + 'V/Zelle). Tiefere Werte verkürzen die Akku-Lebensdauer erheblich.'},
+    {code:'P15',name:'Werksreset',val:'Aktion',def:'—',abe:false,
+     desc:'Setzt alle P-Parameter auf Werkseinstellungen zurück.' + (isAbe ? ' ABE-Werte werden wiederhergestellt.' : '')},
+  ];
+}
 
 const TROUBLES = [
   {q:'Scooter startet nicht',steps:[
@@ -758,11 +920,14 @@ const TROUBLES = [
 
 /* ── Helpers ─────────────────────────────────── */
 function store(key, val) {
-  try { localStorage.setItem('joyor_s5_' + key, JSON.stringify(val)); } catch(e) {}
+  try { localStorage.setItem('escooter_' + key, JSON.stringify(val)); } catch(e) {}
 }
 function load(key, fallback) {
-  try { const v = localStorage.getItem('joyor_s5_' + key); return v ? JSON.parse(v) : fallback; } catch(e) { return fallback; }
+  try { const v = localStorage.getItem('escooter_' + key); return v ? JSON.parse(v) : fallback; } catch(e) { return fallback; }
 }
+try { for (const k of Object.keys(localStorage)) {
+  if (k.startsWith('joyor_')) { const nk = k.replace('joyor_', 'escooter_'); if (!localStorage.getItem(nk)) localStorage.setItem(nk, localStorage.getItem(k)); }
+} } catch(e) {}
 
 /* ── Tabs ────────────────────────────────────── */
 const tabs = document.querySelectorAll('.tab-btn');
@@ -785,8 +950,13 @@ function sevLabel(s) {
 function sevStripe(s) {
   return {low:'info',med:'warn',high:'crit'}[s] || 'info';
 }
+function getErrors() {
+  const brand = getBrand();
+  return ERROR_SETS[brand.errorSet] || ERROR_SETS.generic;
+}
 function renderErrors(filter) {
   const list = document.getElementById('errList');
+  const ERRORS = getErrors();
   const q = (filter || '').toLowerCase().trim();
   const filtered = q ? ERRORS.filter(e =>
     e.code.toLowerCase().includes(q) ||
@@ -889,24 +1059,110 @@ document.getElementById('kmSave').addEventListener('click', () => {
 renderMaint();
 
 /* ── P-Settings ──────────────────────────────── */
-(function() {
+function renderPSettings() {
   const list = document.getElementById('psetList');
-  list.innerHTML = PSETTINGS.map(p => `
-    <div class="card has-stripe pset-card" onclick="this.classList.toggle('open')">
-      <div class="card-stripe ${p.abe ? 'crit' : 'info'}"></div>
-      <div class="pset-header">
-        <span class="pset-code">${p.code}</span>
-        <span class="pset-name">${p.name}</span>
-        ${p.abe ? '<span class="pset-abe">ABE</span>' : ''}
-        <span class="pset-val">Wert: ${p.val}</span>
-        <span class="pset-arrow">&#9654;</span>
-      </div>
-      <div class="pset-detail">
-        <div><strong>Standard:</strong> ${p.def}</div>
-        <div style="margin-top:4px">${p.desc}</div>
-      </div>
-    </div>
-  `).join('');
+  const ps = getPSettings();
+  list.innerHTML = ps.map(p => '<div class="card has-stripe pset-card" onclick="this.classList.toggle(\'open\')"><div class="card-stripe ' + (p.abe ? 'crit' : 'info') + '"></div><div class="pset-header"><span class="pset-code">' + p.code + '</span><span class="pset-name">' + p.name + '</span>' + (p.abe ? '<span class="pset-abe">ABE</span>' : '') + '<span class="pset-val">Wert: ' + p.val + '</span><span class="pset-arrow">&#9654;</span></div><div class="pset-detail"><div><strong>Standard:</strong> ' + p.def + '</div><div style="margin-top:4px">' + p.desc + '</div></div></div>').join('');
+}
+renderPSettings();
+
+/* ── Specs / Daten ──────────────────────────── */
+function renderSpecs() {
+  const m = getModel();
+  document.getElementById('quickRef').innerHTML = [
+    ['Reifendruck', m.tirePressure !== '—' ? m.tirePressure + ' bar' : 'Vollgummi'],
+    ['Akku voll', m.fullV + ' V'],
+    ['Akku leer', m.uvp.toFixed(1) + ' V'],
+    ['Bremsbelag min.', '1.5 mm'],
+    ['Ladezeit', m.chargeTime + ' h'],
+    ['Max. Zuladung', m.maxLoad + ' kg'],
+  ].map(function(r) { return '<div class="qr-item"><div class="qr-label">' + r[0] + '</div><div class="qr-value">' + r[1] + '</div></div>'; }).join('');
+
+  document.getElementById('specGrid').innerHTML = [
+    ['Motor', m.watt + ' W BLDC'],
+    ['Nennspannung', m.volt + ' V'],
+    ['Akku', m.volt + 'V ' + m.ah + 'Ah Li-Ion'],
+    ['Reichweite', m.range + ' km'],
+    ['V-Max', m.vmax + ' km/h'],
+    ['Gewicht', '~' + m.weight + ' kg'],
+    ['Reifen', m.tire],
+    ['Bremsen', m.brakes],
+    ['Schutzklasse', m.ip],
+    ['Ladegerät', m.charger],
+    ['Zellen', m.cells + ' / ' + m.volt + 'V'],
+    ['Zulassung', m.zulassung],
+  ].map(function(r) { return '<div class="spec-item"><div class="spec-label">' + r[0] + '</div><div class="spec-value">' + r[1] + '</div></div>'; }).join('');
+
+  document.getElementById('torqueGrid').innerHTML = [
+    ['Lenkerklemme', '18–20 Nm'],
+    ['Achsmuttern', '25–30 Nm'],
+    ['Bremsscheibe', '5–6 Nm'],
+    ['Bremssattel', '8–10 Nm'],
+    ['Klappgelenk', '12–15 Nm'],
+    ['Trittbrett-Schrauben', '8–10 Nm'],
+  ].map(function(r) { return '<div class="spec-item"><div class="spec-label">' + r[0] + '</div><div class="spec-value">' + r[1] + '</div></div>'; }).join('');
+}
+renderSpecs();
+
+/* ── ABE Hinweis Toggle ─────────────────────── */
+function renderAbeHint() {
+  const el = document.getElementById('abeHint');
+  if (el) el.style.display = getModel().badge === 'ABE' ? '' : 'none';
+}
+
+/* ── Brand/Model Switching ─────────────────── */
+function populateModels(brandId) {
+  const sel = document.getElementById('modelSelect');
+  const brand = BRANDS[brandId];
+  if (!brand) return;
+  sel.innerHTML = '';
+  for (const [key, m] of Object.entries(brand.models)) {
+    const opt = document.createElement('option');
+    opt.value = key;
+    opt.textContent = m.name;
+    sel.appendChild(opt);
+  }
+}
+
+function setBrand(brandId, modelId) {
+  currentBrand = brandId;
+  store('brand', brandId);
+  populateModels(brandId);
+  const brand = getBrand();
+  const models = brand.models;
+  const firstModel = Object.keys(models)[0];
+  currentModel = (modelId && models[modelId]) ? modelId : firstModel;
+  document.getElementById('modelSelect').value = currentModel;
+  applyModel();
+}
+
+function applyModel() {
+  store('model', currentModel);
+  const b = getBrand();
+  const m = getModel();
+  const fullName = b.label + ' ' + m.name;
+  document.getElementById('hdrBadge').textContent = m.badge;
+  document.getElementById('hdrTitle').textContent = fullName;
+  document.getElementById('modelBadge').textContent = m.volt + 'V · ' + m.watt + 'W';
+  document.getElementById('footModel').textContent = fullName;
+  document.title = fullName + ' — Service-Tool';
+  renderSpecs();
+  renderPSettings();
+  renderErrors();
+  renderAbeHint();
+}
+
+(function() {
+  const brandSel = document.getElementById('brandSelect');
+  const modelSel = document.getElementById('modelSelect');
+  const savedBrand = load('brand', 'joyor');
+  const savedModel = load('model', 's5');
+
+  brandSel.value = BRANDS[savedBrand] ? savedBrand : 'joyor';
+  setBrand(brandSel.value, savedModel);
+
+  brandSel.addEventListener('change', function() { setBrand(this.value); });
+  modelSel.addEventListener('change', function() { currentModel = this.value; applyModel(); });
 })();
 
 /* ── Troubleshooting ─────────────────────────── */
@@ -925,15 +1181,8 @@ renderMaint();
   `).join('');
 })();
 
-/* ── Bluetooth / Verbinden ───────────────────── */
+/* ── Dual USB Serial + Bluetooth BLE / Verbinden ── */
 (function() {
-  const UART_SERVICES = [
-    {name:'Generic UART (FFE0)', svc:0xFFE0, tx:0xFFE1, rx:0xFFE1},
-    {name:'Nordic UART (NUS)', svc:'6e400001-b5a3-f393-e0a9-e50e24dcca9e',
-     tx:'6e400002-b5a3-f393-e0a9-e50e24dcca9e', rx:'6e400003-b5a3-f393-e0a9-e50e24dcca9e'},
-    {name:'Alt UART (FFF0)', svc:0xFFF0, tx:0xFFF1, rx:0xFFF2},
-  ];
-
   const dot = document.getElementById('bleDot');
   const label = document.getElementById('bleLabel');
   const deviceEl = document.getElementById('bleDevice');
@@ -941,25 +1190,97 @@ renderMaint();
   const svcEl = document.getElementById('bleServices');
   const scanBtn = document.getElementById('bleScan');
   const discBtn = document.getElementById('bleDisconnect');
-  const noSupport = document.getElementById('bleNoSupport');
-  const bleContent = document.getElementById('bleContent');
+  const noSupport = document.getElementById('connNoSupport');
+  const noSupportTitle = document.getElementById('noSupportTitle');
+  const noSupportText = document.getElementById('noSupportText');
+  const content = document.getElementById('bleContent');
+  const baudSelect = document.getElementById('baudSelect');
+  const modeUsbBtn = document.getElementById('modeUsb');
+  const modeBleBtn = document.getElementById('modeBle');
 
-  let gattServer = null;
-  let txChar = null;
-  let rxChar = null;
-  let pollTimer = null;
+  let mode = 'usb';
+  const hasSerial = 'serial' in navigator;
+  const hasBle = 'bluetooth' in navigator;
 
-  if (!navigator.bluetooth) {
+  // USB state
+  let port = null, usbReader = null, usbWriter = null;
+  // BLE state
+  let bleDevice = null, bleServer = null, bleTxChar = null, bleRxChar = null;
+  // Shared
+  let pollTimer = null, rxBuf = [];
+
+  const BLE_UUIDS = [
+    { svc: '0000ffe0-0000-1000-8000-00805f9b34fb', rx: '0000ffe1-0000-1000-8000-00805f9b34fb', tx: '0000ffe1-0000-1000-8000-00805f9b34fb', name: 'FFE0' },
+    { svc: '6e400001-b5a3-f393-e0a9-e50e24dcca9e', rx: '6e400003-b5a3-f393-e0a9-e50e24dcca9e', tx: '6e400002-b5a3-f393-e0a9-e50e24dcca9e', name: 'Nordic NUS' },
+    { svc: '0000fff0-0000-1000-8000-00805f9b34fb', rx: '0000fff1-0000-1000-8000-00805f9b34fb', tx: '0000fff2-0000-1000-8000-00805f9b34fb', name: 'FFF0' }
+  ];
+
+  function updateModeUI() {
+    const isUsb = mode === 'usb';
+    modeUsbBtn.classList.toggle('active', isUsb);
+    modeBleBtn.classList.toggle('active', !isUsb);
+    baudSelect.style.display = isUsb ? '' : 'none';
+    scanBtn.textContent = isUsb ? 'USB verbinden' : 'Scooter suchen';
+
+    const supported = isUsb ? hasSerial : hasBle;
+    if (!supported) {
+      noSupport.style.display = '';
+      content.querySelector('.ble-actions').style.display = 'none';
+      content.querySelector('.ble-status').style.display = 'none';
+      if (isUsb) {
+        noSupportTitle.textContent = 'Web Serial nicht verfügbar';
+        noSupportText.textContent = 'Verwende Chrome/Edge (Desktop) für USB-Verbindung.';
+      } else {
+        noSupportTitle.textContent = 'Web Bluetooth nicht verfügbar';
+        noSupportText.textContent = 'Verwende Chrome (Android/Desktop) für Bluetooth-Verbindung.';
+      }
+    } else {
+      noSupport.style.display = 'none';
+      content.querySelector('.ble-actions').style.display = '';
+      content.querySelector('.ble-status').style.display = '';
+    }
+  }
+
+  function autoDetectBrand(deviceName) {
+    if (!deviceName) return;
+    const n = deviceName.toLowerCase();
+    const map = [
+      [['joyor'],'joyor'], [['xiaomi','miscooter','mi scooter','mi electric'],'xiaomi'],
+      [['ninebot','segway'],'ninebot'], [['niu'],'niu'], [['egret'],'egret'],
+      [['soflow'],'soflow'], [['etwow','e-twow'],'etwow'], [['vmax'],'vmax'],
+      [['kugoo'],'kugoo'], [['iscooter'],'iscooter'],
+    ];
+    for (const [keys, brand] of map) {
+      if (keys.some(k => n.includes(k))) {
+        if (currentBrand !== brand) {
+          document.getElementById('brandSelect').value = brand;
+          setBrand(brand);
+          log('Marke erkannt: ' + getBrand().label, 'log-ok');
+        }
+        return;
+      }
+    }
+  }
+
+  modeUsbBtn.addEventListener('click', () => { if (mode !== 'usb') { disconnectAll(); mode = 'usb'; updateModeUI(); log('Modus: USB Serial', 'log-info'); }});
+  modeBleBtn.addEventListener('click', () => { if (mode !== 'ble') { disconnectAll(); mode = 'ble'; updateModeUI(); log('Modus: Bluetooth BLE', 'log-info'); }});
+
+  if (!hasSerial && !hasBle) {
     noSupport.style.display = '';
-    bleContent.style.display = 'none';
+    noSupportTitle.textContent = 'Nicht verfügbar';
+    noSupportText.textContent = 'Weder Web Serial noch Web Bluetooth wird unterstützt. Verwende Chrome.';
+    content.querySelector('.ble-actions').style.display = 'none';
+    content.querySelector('.ble-status').style.display = 'none';
     return;
   }
+
+  updateModeUI();
 
   function log(msg, cls) {
     const ts = new Date().toLocaleTimeString('de-DE');
     const span = document.createElement('span');
     if (cls) span.className = cls;
-    span.textContent = `[${ts}] ${msg}\n`;
+    span.textContent = '[' + ts + '] ' + msg + '\n';
     logEl.appendChild(span);
     logEl.scrollTop = logEl.scrollHeight;
   }
@@ -982,9 +1303,10 @@ renderMaint();
   }
 
   function voltToPercent(v) {
-    if (v >= 54.6) return 100;
-    if (v <= 39.0) return 0;
-    return Math.round((v - 39.0) / (54.6 - 39.0) * 100);
+    const m = getModel();
+    if (v >= m.fullV) return 100;
+    if (v <= m.uvp) return 0;
+    return Math.round((v - m.uvp) / (m.fullV - m.uvp) * 100);
   }
 
   function batClass(pct) {
@@ -993,204 +1315,98 @@ renderMaint();
     return 'ok';
   }
 
-  function parseFrame(data) {
-    const bytes = new Uint8Array(data.buffer);
+  function processRxBuf() {
+    while (rxBuf.length >= 4) {
+      if (rxBuf[0] === 0x5A && rxBuf[1] === 0xA5) {
+        const len = rxBuf[2]; const frameLen = len + 4;
+        if (rxBuf.length < frameLen) break;
+        parseFrame(rxBuf.splice(0, frameLen)); continue;
+      }
+      if (rxBuf[0] === 0xAA) {
+        const endIdx = rxBuf.indexOf(0x55, 3);
+        if (endIdx === -1) { if (rxBuf.length > 64) rxBuf.splice(0, 1); break; }
+        parseFrame(rxBuf.splice(0, endIdx + 1)); continue;
+      }
+      if (rxBuf.length >= 10) { parseFrame(rxBuf.splice(0, 10)); continue; }
+      break;
+    }
+    if (rxBuf.length > 256) rxBuf.splice(0, rxBuf.length - 64);
+  }
+
+  function parseFrame(bytes) {
     if (bytes.length < 4) return;
-
     log('RX: ' + bytesToHex(bytes), 'log-data');
-
-    // Protocol A: [5A A5] [len] [cmd] [data...] [checksum]
     if (bytes[0] === 0x5A && bytes[1] === 0xA5 && bytes.length >= 6) {
       const cmd = bytes[3];
-      if (cmd === 0x40 || cmd === 0x31) {
-        const volt = ((bytes[4] << 8) | bytes[5]) / 100;
-        const pct = voltToPercent(volt);
-        setLive('liveVolt', volt.toFixed(1), 'V');
-        setLive('liveBat', pct, '%', batClass(pct));
-        log('Spannung: ' + volt.toFixed(1) + 'V (' + pct + '%)', 'log-ok');
-      }
-      if (cmd === 0x41 || cmd === 0x32) {
-        const speed = ((bytes[4] << 8) | bytes[5]) / 10;
-        setLive('liveSpeed', speed.toFixed(1), 'km/h');
-      }
-      if (cmd === 0x42 || cmd === 0x33) {
-        const odo = ((bytes[4] << 16) | (bytes[5] << 8) | bytes[6]) / 10;
-        setLive('liveOdo', odo.toFixed(0), 'km');
-      }
-      if (cmd === 0x43 || cmd === 0x34) {
-        const temp = bytes[4] - 20;
-        setLive('liveTemp', temp, '°C', temp > 60 ? 'crit' : (temp > 45 ? 'warn' : ''));
-      }
-      if (cmd === 0x44 || cmd === 0x35) {
-        const errCode = bytes[4];
-        if (errCode === 0) {
-          setLive('liveErr', 'Keiner', '', 'ok');
-        } else {
-          setLive('liveErr', 'E' + errCode.toString().padStart(2,'0'), '', 'crit');
-          log('Fehlercode: E' + errCode.toString().padStart(2,'0'), 'log-err');
-        }
-      }
+      if (cmd === 0x40 || cmd === 0x31) { const v = ((bytes[4] << 8) | bytes[5]) / 100; const p = voltToPercent(v); setLive('liveVolt', v.toFixed(1), 'V'); setLive('liveBat', p, '%', batClass(p)); log('Spannung: ' + v.toFixed(1) + 'V (' + p + '%)', 'log-ok'); }
+      if (cmd === 0x41 || cmd === 0x32) { setLive('liveSpeed', (((bytes[4] << 8) | bytes[5]) / 10).toFixed(1), 'km/h'); }
+      if (cmd === 0x42 || cmd === 0x33) { setLive('liveOdo', (((bytes[4] << 16) | (bytes[5] << 8) | bytes[6]) / 10).toFixed(0), 'km'); }
+      if (cmd === 0x43 || cmd === 0x34) { const t = bytes[4] - 20; setLive('liveTemp', t, '°C', t > 60 ? 'crit' : (t > 45 ? 'warn' : '')); }
+      if (cmd === 0x44 || cmd === 0x35) { const e = bytes[4]; if (e === 0) { setLive('liveErr', 'Keiner', '', 'ok'); } else { setLive('liveErr', 'E' + e.toString().padStart(2,'0'), '', 'crit'); log('Fehlercode: E' + e.toString().padStart(2,'0'), 'log-err'); } }
       return;
     }
-
-    // Protocol B: [AA] [len] [src] [cmd] [data...] [checksum] [55]
     if (bytes[0] === 0xAA && bytes[bytes.length - 1] === 0x55 && bytes.length >= 7) {
       const cmd = bytes[3];
-      if (cmd === 0x16 || cmd === 0x25) {
-        const volt = ((bytes[4] << 8) | bytes[5]) / 100;
-        const pct = voltToPercent(volt);
-        setLive('liveVolt', volt.toFixed(1), 'V');
-        setLive('liveBat', pct, '%', batClass(pct));
-      }
-      if (cmd === 0x26) {
-        const speed = ((bytes[4] << 8) | bytes[5]) / 10;
-        setLive('liveSpeed', speed.toFixed(1), 'km/h');
-      }
-      if (cmd === 0x17) {
-        const current = ((bytes[4] << 8) | bytes[5]) / 100;
-        setLive('liveCurrent', current.toFixed(1), 'A');
-      }
-      if (cmd === 0x1A) {
-        setLive('liveMode', bytes[4], '');
-      }
+      if (cmd === 0x16 || cmd === 0x25) { const v = ((bytes[4] << 8) | bytes[5]) / 100; const p = voltToPercent(v); setLive('liveVolt', v.toFixed(1), 'V'); setLive('liveBat', p, '%', batClass(p)); }
+      if (cmd === 0x26) { setLive('liveSpeed', (((bytes[4] << 8) | bytes[5]) / 10).toFixed(1), 'km/h'); }
+      if (cmd === 0x17) { setLive('liveCurrent', (((bytes[4] << 8) | bytes[5]) / 100).toFixed(1), 'A'); }
+      if (cmd === 0x1A) { setLive('liveMode', bytes[4], ''); }
       return;
     }
-
-    // Protocol C: continuous stream (some controllers send periodic packets)
     if (bytes.length >= 10) {
-      const volt = ((bytes[2] << 8) | bytes[3]) / 100;
-      if (volt > 30 && volt < 70) {
-        const pct = voltToPercent(volt);
-        setLive('liveVolt', volt.toFixed(1), 'V');
-        setLive('liveBat', pct, '%', batClass(pct));
-        const speed = ((bytes[4] << 8) | bytes[5]) / 10;
-        if (speed >= 0 && speed < 100) setLive('liveSpeed', speed.toFixed(1), 'km/h');
-      }
+      const v = ((bytes[2] << 8) | bytes[3]) / 100;
+      if (v > 30 && v < 70) { const p = voltToPercent(v); setLive('liveVolt', v.toFixed(1), 'V'); setLive('liveBat', p, '%', batClass(p)); const s = ((bytes[4] << 8) | bytes[5]) / 10; if (s >= 0 && s < 100) setLive('liveSpeed', s.toFixed(1), 'km/h'); }
     }
   }
 
-  function renderServices(services) {
-    let html = '';
-    services.forEach(svc => {
-      const uuid = svc.uuid.length > 8 ? svc.uuid.substring(0, 8) + '...' : svc.uuid;
-      html += `<div class="ble-svc"><div class="ble-svc-name">Service: ${uuid}</div>`;
-      svc.chars.forEach(c => {
-        const props = [];
-        if (c.properties.read) props.push('read');
-        if (c.properties.write) props.push('write');
-        if (c.properties.writeWithoutResponse) props.push('writeNoResp');
-        if (c.properties.notify) props.push('notify');
-        if (c.properties.indicate) props.push('indicate');
-        const cuuid = c.uuid.length > 8 ? c.uuid.substring(0, 8) + '...' : c.uuid;
-        html += `<div class="ble-char">${cuuid} <span class="ble-char-props">${props.join(' ')}</span></div>`;
-      });
-      html += '</div>';
-    });
-    svcEl.innerHTML = html || '<div class="no-results">Keine Dienste gefunden.</div>';
-  }
-
-  async function discoverAndSubscribe(server) {
-    const discoveredServices = [];
-    let foundUart = false;
-
-    try {
-      const allServices = await server.getPrimaryServices();
-      log(allServices.length + ' Dienste gefunden.', 'log-info');
-
-      for (const svc of allServices) {
-        const svcInfo = {uuid: svc.uuid, chars: []};
-        try {
-          const chars = await svc.getCharacteristics();
-          for (const ch of chars) {
-            svcInfo.chars.push({uuid: ch.uuid, properties: ch.properties});
-
-            for (const known of UART_SERVICES) {
-              const svcMatch = typeof known.svc === 'number'
-                ? svc.uuid === BluetoothUUID.getService(known.svc)
-                : svc.uuid === known.svc;
-              if (!svcMatch) continue;
-
-              const rxMatch = typeof known.rx === 'number'
-                ? ch.uuid === BluetoothUUID.getCharacteristic(known.rx)
-                : ch.uuid === known.rx;
-              const txMatch = typeof known.tx === 'number'
-                ? ch.uuid === BluetoothUUID.getCharacteristic(known.tx)
-                : ch.uuid === known.tx;
-
-              if (rxMatch && ch.properties.notify) {
-                rxChar = ch;
-                log('UART RX gefunden: ' + known.name, 'log-ok');
-                foundUart = true;
-                ch.addEventListener('characteristicvaluechanged', e => parseFrame(e.target.value));
-                await ch.startNotifications();
-                log('Notifications aktiviert auf RX.', 'log-ok');
-              }
-              if (txMatch && (ch.properties.write || ch.properties.writeWithoutResponse)) {
-                txChar = ch;
-                log('UART TX gefunden: ' + known.name, 'log-ok');
-              }
-            }
-
-            if (!foundUart && ch.properties.notify) {
-              log('Notify-Characteristic gefunden: ' + ch.uuid.substring(0,8) + '... — abonniere.', 'log-info');
-              ch.addEventListener('characteristicvaluechanged', e => parseFrame(e.target.value));
-              await ch.startNotifications();
-              rxChar = ch;
-              foundUart = true;
-            }
-          }
-        } catch(e) {
-          log('Characteristics lesen fehlgeschlagen: ' + e.message, 'log-err');
-        }
-        discoveredServices.push(svcInfo);
-      }
-    } catch(e) {
-      log('Service-Discovery fehlgeschlagen: ' + e.message, 'log-err');
-    }
-
-    renderServices(discoveredServices);
-
-    if (!foundUart) {
-      log('Kein UART-Dienst erkannt. Daten werden angezeigt sobald der Scooter sendet.', 'log-info');
-    }
-  }
-
+  /* ── Send command (works for both modes) ── */
   async function sendCommand(bytes) {
-    if (!txChar) return;
+    const data = new Uint8Array(bytes);
     try {
-      const data = new Uint8Array(bytes);
-      if (txChar.properties.writeWithoutResponse) {
-        await txChar.writeValueWithoutResponse(data);
-      } else {
-        await txChar.writeValueWithResponse(data);
+      if (mode === 'usb' && usbWriter) {
+        await usbWriter.write(data);
+        log('TX: ' + bytesToHex(data), 'log-data');
+      } else if (mode === 'ble' && bleTxChar) {
+        await bleTxChar.writeValueWithoutResponse(data);
+        log('TX: ' + bytesToHex(data), 'log-data');
       }
-      log('TX: ' + bytesToHex(data), 'log-data');
-    } catch(e) {
-      log('Senden fehlgeschlagen: ' + e.message, 'log-err');
-    }
+    } catch(e) { log('Senden fehlgeschlagen: ' + e.message, 'log-err'); }
   }
 
   function startPolling() {
     stopPolling();
     pollTimer = setInterval(() => {
-      if (!txChar) return;
       sendCommand([0x5A, 0xA5, 0x02, 0x40, 0x00, 0xE1]);
       setTimeout(() => sendCommand([0x5A, 0xA5, 0x02, 0x41, 0x00, 0xE2]), 200);
       setTimeout(() => sendCommand([0x5A, 0xA5, 0x02, 0x43, 0x00, 0xE4]), 400);
       setTimeout(() => sendCommand([0x5A, 0xA5, 0x02, 0x44, 0x00, 0xE5]), 600);
     }, 2000);
   }
+  function stopPolling() { if (pollTimer) { clearInterval(pollTimer); pollTimer = null; } }
 
-  function stopPolling() {
-    if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+  /* ── USB disconnect ── */
+  async function disconnectUsb() {
+    stopPolling();
+    if (usbReader) { try { await usbReader.cancel(); } catch(e) {} usbReader = null; }
+    if (usbWriter) { try { usbWriter.releaseLock(); } catch(e) {} usbWriter = null; }
+    if (port) { try { await port.close(); } catch(e) {} port = null; }
+    rxBuf = [];
   }
 
-  function disconnect() {
+  /* ── BLE disconnect ── */
+  function disconnectBle() {
     stopPolling();
-    if (gattServer && gattServer.connected) {
-      gattServer.disconnect();
-    }
-    gattServer = null; txChar = null; rxChar = null;
+    if (bleRxChar) { try { bleRxChar.removeEventListener('characteristicvaluechanged', onBleData); } catch(e) {} bleRxChar = null; }
+    bleTxChar = null;
+    if (bleServer && bleServer.connected) { try { bleServer.disconnect(); } catch(e) {} }
+    bleServer = null; bleDevice = null;
+    rxBuf = [];
+  }
+
+  /* ── Disconnect current mode ── */
+  async function disconnectAll() {
+    if (mode === 'usb') await disconnectUsb();
+    else disconnectBle();
     setStatus('', 'Getrennt', '');
     discBtn.disabled = true;
     scanBtn.disabled = false;
@@ -1198,60 +1414,178 @@ renderMaint();
     log('Verbindung getrennt.', 'log-info');
   }
 
-  scanBtn.addEventListener('click', async () => {
+  /* ── USB connect ── */
+  async function connectUsb() {
     scanBtn.disabled = true;
-    setStatus('scanning', 'Suche...', '');
+    setStatus('scanning', 'Verbinde...', '');
     logEl.innerHTML = '';
-    log('Starte BLE-Scan...', 'log-info');
-    log('Tipp: Scooter einschalten und in der Nähe halten.', 'log-info');
-
+    log('USB-Port auswählen...', 'log-info');
+    log('Tipp: Scooter einschalten und USB-Kabel anschließen.', 'log-info');
     try {
-      const filters = UART_SERVICES.map(u => ({services: [typeof u.svc === 'number' ? BluetoothUUID.getService(u.svc) : u.svc]}));
-      const device = await navigator.bluetooth.requestDevice({
-        filters: filters,
-        optionalServices: UART_SERVICES.map(u => typeof u.svc === 'number' ? BluetoothUUID.getService(u.svc) : u.svc),
-        acceptAllDevices: false,
-      }).catch(() =>
-        navigator.bluetooth.requestDevice({
-          acceptAllDevices: true,
-          optionalServices: UART_SERVICES.map(u => typeof u.svc === 'number' ? BluetoothUUID.getService(u.svc) : u.svc),
-        })
-      );
+      port = await navigator.serial.requestPort();
+      const info = port.getInfo();
+      const baud = parseInt(baudSelect.value);
+      log('Port ausgewählt (Vendor: 0x' + (info.usbVendorId || 0).toString(16) + ')', 'log-ok');
+      setStatus('scanning', 'Öffne Port...', '');
+      await port.open({ baudRate: baud, dataBits: 8, stopBits: 1, parity: 'none', flowControl: 'none' });
+      log('USB Serial verbunden (' + baud + ' Baud)', 'log-ok');
+      setStatus('connected', 'Verbunden', 'USB @ ' + baud + ' Bd');
+      log('Fehlercodes geladen: ' + getBrand().label + ' (' + getErrors().length + ' Codes)', 'log-info');
+      discBtn.disabled = false; scanBtn.disabled = false;
+      const usbVendor = info.usbVendorId ? '0x' + info.usbVendorId.toString(16).padStart(4,'0') : '—';
+      const usbProduct = info.usbProductId ? '0x' + info.usbProductId.toString(16).padStart(4,'0') : '—';
+      svcEl.innerHTML = '<div class="ble-svc"><div class="ble-svc-name">USB Serial Port</div><div class="ble-char">Vendor ID: <span class="ble-char-props">' + usbVendor + '</span></div><div class="ble-char">Product ID: <span class="ble-char-props">' + usbProduct + '</span></div><div class="ble-char">Baudrate: <span class="ble-char-props">' + baud + '</span></div></div>';
+      usbWriter = port.writable.getWriter();
+      (async function readLoop() {
+        while (port && port.readable) {
+          usbReader = port.readable.getReader();
+          try { while (true) { const {value, done} = await usbReader.read(); if (done) break; rxBuf.push(...value); processRxBuf(); } }
+          catch(e) { log('Lese-Fehler: ' + e.message, 'log-err'); }
+          finally { try { usbReader.releaseLock(); } catch(e) {} }
+        }
+      })();
+      log('Starte Polling für Live-Daten...', 'log-info');
+      startPolling();
+    } catch(e) {
+      if (e.name === 'NotFoundError') { log('Kein Port ausgewählt.', 'log-info'); setStatus('', 'Getrennt', ''); }
+      else { log('Fehler: ' + e.message, 'log-err'); setStatus('error', 'Fehler', ''); }
+      scanBtn.disabled = false; port = null;
+    }
+  }
 
-      const name = device.name || device.id;
-      log('Gerät ausgewählt: ' + name, 'log-ok');
-      setStatus('scanning', 'Verbinde...', name);
+  /* ── BLE data handler ── */
+  function onBleData(event) {
+    const val = event.target.value;
+    for (let i = 0; i < val.byteLength; i++) rxBuf.push(val.getUint8(i));
+    processRxBuf();
+  }
 
-      device.addEventListener('gattserverdisconnected', () => {
-        log('Verbindung verloren.', 'log-err');
-        disconnect();
+  /* ── BLE connect ── */
+  async function connectBle() {
+    scanBtn.disabled = true;
+    setStatus('scanning', 'Suche Scooter...', '');
+    logEl.innerHTML = '';
+    log('Suche Bluetooth-Geräte...', 'log-info');
+    log('Tipp: Scooter einschalten. Gerätename meist "scooter".', 'log-info');
+    try {
+      const allSvcUuids = BLE_UUIDS.map(u => u.svc);
+      const blePrefixes = ['scooter','Scooter','SCOOTER','Joyor','joyor','Xiaomi','MiScooter','Mi Scooter','Ninebot','ninebot','Segway','NIU','niu','Egret','SoFlow','ETWOW','E-TWOW','VMAX','Kugoo','kugoo','iScooter','iscooter','BLE-','ESC'];
+      bleDevice = await navigator.bluetooth.requestDevice({
+        filters: blePrefixes.map(p => ({ namePrefix: p })),
+        optionalServices: allSvcUuids,
+        acceptAllDevices: false
+      }).catch(() => navigator.bluetooth.requestDevice({ acceptAllDevices: true, optionalServices: allSvcUuids }));
+
+      if (!bleDevice) { log('Kein Gerät ausgewählt.', 'log-info'); setStatus('', 'Getrennt', ''); scanBtn.disabled = false; return; }
+
+      log('Gerät: ' + (bleDevice.name || 'Unbekannt'), 'log-ok');
+      autoDetectBrand(bleDevice.name || '');
+      setStatus('scanning', 'Verbinde...', bleDevice.name || '');
+
+      bleDevice.addEventListener('gattserverdisconnected', () => {
+        log('Bluetooth-Verbindung verloren.', 'log-err');
+        disconnectBle();
+        setStatus('', 'Getrennt', '');
+        discBtn.disabled = true; scanBtn.disabled = false;
+        svcEl.innerHTML = '<div class="no-results">Nicht verbunden.</div>';
       });
 
-      gattServer = await device.gatt.connect();
+      bleServer = await bleDevice.gatt.connect();
       log('GATT verbunden.', 'log-ok');
-      setStatus('connected', 'Verbunden', name);
-      discBtn.disabled = false;
-      scanBtn.disabled = false;
 
-      await discoverAndSubscribe(gattServer);
-
-      if (txChar) {
-        log('Starte Polling für Live-Daten...', 'log-info');
-        startPolling();
+      let matched = null;
+      for (const u of BLE_UUIDS) {
+        try {
+          const svc = await bleServer.getPrimaryService(u.svc);
+          const rx = await svc.getCharacteristic(u.rx);
+          const tx = (u.tx === u.rx) ? rx : await svc.getCharacteristic(u.tx);
+          matched = { svc, rx, tx, name: u.name };
+          break;
+        } catch(e) { /* try next */ }
       }
+
+      if (!matched) {
+        log('Kein bekanntes UART-Profil gefunden. Suche alle Services...', 'log-info');
+        const svcs = await bleServer.getPrimaryServices();
+        let html = '';
+        for (const svc of svcs) {
+          html += '<div class="ble-svc"><div class="ble-svc-name">' + svc.uuid + '</div>';
+          try {
+            const chars = await svc.getCharacteristics();
+            for (const c of chars) {
+              const props = [];
+              if (c.properties.read) props.push('R');
+              if (c.properties.write) props.push('W');
+              if (c.properties.writeWithoutResponse) props.push('Wn');
+              if (c.properties.notify) props.push('N');
+              html += '<div class="ble-char">' + c.uuid + ' <span class="ble-char-props">[' + props.join(',') + ']</span></div>';
+            }
+          } catch(e) {}
+          html += '</div>';
+        }
+        svcEl.innerHTML = html || '<div class="no-results">Keine Services gefunden.</div>';
+        setStatus('connected', 'Verbunden (kein UART)', bleDevice.name || '');
+        discBtn.disabled = false; scanBtn.disabled = false;
+        return;
+      }
+
+      log('UART-Profil: ' + matched.name, 'log-ok');
+      bleRxChar = matched.rx;
+      bleTxChar = matched.tx;
+
+      await bleRxChar.startNotifications();
+      bleRxChar.addEventListener('characteristicvaluechanged', onBleData);
+
+      setStatus('connected', 'Verbunden', bleDevice.name || 'BLE');
+      discBtn.disabled = false; scanBtn.disabled = false;
+
+      svcEl.innerHTML = '<div class="ble-svc"><div class="ble-svc-name">Bluetooth ' + matched.name + '</div><div class="ble-char">Gerät: <span class="ble-char-props">' + (bleDevice.name || '—') + '</span></div><div class="ble-char">Service: <span class="ble-char-props">' + matched.name + '</span></div><div class="ble-char">TX/RX: <span class="ble-char-props">Aktiv</span></div></div>';
+
+      log('Fehlercodes geladen: ' + getBrand().label + ' (' + getErrors().length + ' Codes)', 'log-ok');
+      log('Starte Polling für Live-Daten...', 'log-info');
+      startPolling();
 
     } catch(e) {
-      if (e.name === 'NotFoundError') {
-        log('Kein Gerät ausgewählt.', 'log-info');
-        setStatus('', 'Getrennt', '');
-      } else {
-        log('Fehler: ' + e.message, 'log-err');
-        setStatus('error', 'Fehler', '');
-      }
-      scanBtn.disabled = false;
+      if (e.name === 'NotFoundError') { log('Kein Gerät ausgewählt.', 'log-info'); setStatus('', 'Getrennt', ''); }
+      else { log('Fehler: ' + e.message, 'log-err'); setStatus('error', 'Fehler', ''); }
+      scanBtn.disabled = false; bleDevice = null;
+    }
+  }
+
+  /* ── Android native bridge support ── */
+  if (window.AndroidUsb) {
+    window.onUsbConnected = function(name) { autoDetectBrand(name); setStatus('connected', 'Verbunden', 'USB: ' + name); discBtn.disabled = false; log('USB verbunden: ' + name, 'log-ok'); startPolling(); };
+    window.onUsbDisconnected = function() { setStatus('', 'Getrennt', ''); discBtn.disabled = true; scanBtn.disabled = false; stopPolling(); log('USB getrennt.', 'log-info'); };
+    window.onUsbData = function(hex) { const bytes = hex.split(' ').filter(Boolean).map(h => parseInt(h, 16)); rxBuf.push(...bytes); processRxBuf(); };
+    window.onUsbError = function(msg) { log('USB-Fehler: ' + msg, 'log-err'); setStatus('error', 'Fehler', ''); scanBtn.disabled = false; };
+    window.onUsbDeviceInfo = function(json) { try { const d = JSON.parse(json); svcEl.innerHTML = '<div class="ble-svc"><div class="ble-svc-name">USB (Android)</div><div class="ble-char">Gerät: <span class="ble-char-props">' + d.name + '</span></div><div class="ble-char">Vendor: <span class="ble-char-props">' + d.vendor + '</span></div></div>'; } catch(e) {} };
+  }
+  if (window.AndroidBle) {
+    window.onBleConnected = function(name) { autoDetectBrand(name); setStatus('connected', 'Verbunden', 'BLE: ' + name); discBtn.disabled = false; log('BLE verbunden: ' + name, 'log-ok'); startPolling(); };
+    window.onBleDisconnected = function() { setStatus('', 'Getrennt', ''); discBtn.disabled = true; scanBtn.disabled = false; stopPolling(); log('BLE getrennt.', 'log-info'); };
+    window.onBleData = function(hex) { const bytes = hex.split(' ').filter(Boolean).map(h => parseInt(h, 16)); rxBuf.push(...bytes); processRxBuf(); };
+    window.onBleError = function(msg) { log('BLE-Fehler: ' + msg, 'log-err'); setStatus('error', 'Fehler', ''); scanBtn.disabled = false; };
+  }
+
+  /* ── Button handlers ── */
+  scanBtn.addEventListener('click', () => {
+    if (mode === 'usb') {
+      if (window.AndroidUsb) { window.AndroidUsb.connect(); return; }
+      connectUsb();
+    } else {
+      if (window.AndroidBle) { window.AndroidBle.connect(); return; }
+      connectBle();
     }
   });
 
-  discBtn.addEventListener('click', disconnect);
+  discBtn.addEventListener('click', () => {
+    if (mode === 'usb' && window.AndroidUsb) { window.AndroidUsb.disconnect(); return; }
+    if (mode === 'ble' && window.AndroidBle) { window.AndroidBle.disconnect(); return; }
+    disconnectAll();
+  });
 })();
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').catch(() => {});
+}
 </script>
