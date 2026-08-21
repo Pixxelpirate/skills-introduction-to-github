@@ -303,6 +303,96 @@ body{
 .trouble-steps li{margin-bottom:6px;line-height:1.5}
 .trouble-steps li strong{color:var(--accent);font-weight:500}
 
+/* Bluetooth / Verbinden */
+.ble-status{
+  display:flex;align-items:center;gap:10px;
+  margin-bottom:16px;padding:12px 14px;
+  background:var(--bg-card);border:1px solid var(--border);
+  border-radius:6px;box-shadow:var(--shadow);
+}
+.ble-dot{
+  width:12px;height:12px;border-radius:50%;flex-shrink:0;
+  background:var(--text-sec);transition:background .3s;
+}
+.ble-dot.scanning{background:var(--warn);animation:pulse 1.2s ease-in-out infinite}
+.ble-dot.connected{background:var(--success)}
+.ble-dot.error{background:var(--critical)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.ble-label{font-weight:500;font-size:14px;flex:1}
+.ble-device{font-family:'Fira Code',monospace;font-size:12px;color:var(--text-sec)}
+.ble-actions{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.ble-btn{
+  font-family:'Barlow Condensed',sans-serif;font-weight:600;
+  font-size:13px;letter-spacing:.3px;text-transform:uppercase;
+  padding:9px 18px;border:0;border-radius:4px;
+  cursor:pointer;transition:background .15s;
+}
+.ble-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.ble-btn:disabled{opacity:.4;cursor:not-allowed}
+.ble-btn-primary{background:var(--accent);color:var(--accent-text)}
+.ble-btn-primary:hover:not(:disabled){background:var(--accent-hover)}
+.ble-btn-sec{background:var(--bg-input);color:var(--text);border:1px solid var(--border)}
+.ble-btn-sec:hover:not(:disabled){background:var(--border)}
+
+.live-grid{
+  display:grid;grid-template-columns:1fr 1fr;gap:8px;
+  margin-bottom:16px;
+}
+@media(max-width:400px){.live-grid{grid-template-columns:1fr}}
+.live-tile{
+  padding:12px 14px;
+  background:var(--bg-card);border:1px solid var(--border);
+  border-radius:6px;box-shadow:var(--shadow);
+  text-align:center;
+}
+.live-tile-label{
+  font-size:11px;color:var(--text-sec);text-transform:uppercase;
+  letter-spacing:.4px;font-family:'Barlow Condensed',sans-serif;
+}
+.live-tile-value{
+  font-family:'Fira Code',monospace;font-weight:500;
+  font-size:22px;margin-top:4px;
+  font-variant-numeric:tabular-nums;
+}
+.live-tile-unit{font-size:13px;color:var(--text-sec);font-weight:400}
+.live-tile-value.ok{color:var(--success)}
+.live-tile-value.warn{color:var(--warn)}
+.live-tile-value.crit{color:var(--critical)}
+
+.ble-log{
+  background:var(--code-bg);border:1px solid var(--border);
+  border-radius:6px;padding:10px 12px;
+  font-family:'Fira Code',monospace;font-size:11px;
+  line-height:1.6;max-height:200px;overflow-y:auto;
+  color:var(--text-sec);white-space:pre-wrap;
+  word-break:break-all;
+}
+.ble-log .log-info{color:var(--info)}
+.ble-log .log-ok{color:var(--success)}
+.ble-log .log-err{color:var(--critical)}
+.ble-log .log-data{color:var(--accent)}
+.ble-no-support{
+  text-align:center;padding:30px 16px;
+  color:var(--text-sec);font-size:14px;
+}
+.ble-no-support strong{color:var(--text);display:block;margin-bottom:6px}
+
+.ble-services{margin-top:16px}
+.ble-svc{margin-bottom:8px}
+.ble-svc-name{
+  font-family:'Fira Code',monospace;font-size:12px;
+  color:var(--accent);padding:4px 0;font-weight:500;
+}
+.ble-char{
+  font-size:11px;color:var(--text-sec);padding:2px 0 2px 16px;
+  font-family:'Fira Code',monospace;
+}
+.ble-char-props{
+  display:inline-block;font-size:10px;
+  background:var(--code-bg);padding:1px 5px;border-radius:3px;
+  margin-left:6px;
+}
+
 /* Footer */
 .foot{
   margin-top:32px;padding-top:16px;
@@ -316,7 +406,7 @@ body{
 
 /* Reduced motion */
 @media(prefers-reduced-motion:reduce){
-  *{transition:none !important}
+  *{transition:none !important;animation:none !important}
 }
 </style>
 
@@ -328,15 +418,81 @@ body{
   </header>
 
   <nav class="tabs" role="tablist">
-    <button class="tab-btn active" role="tab" aria-selected="true" data-tab="diagnose">Diagnose</button>
+    <button class="tab-btn active" role="tab" aria-selected="true" data-tab="verbinden">Verbinden</button>
+    <button class="tab-btn" role="tab" aria-selected="false" data-tab="diagnose">Diagnose</button>
     <button class="tab-btn" role="tab" aria-selected="false" data-tab="wartung">Wartung</button>
     <button class="tab-btn" role="tab" aria-selected="false" data-tab="psettings">P-Settings</button>
     <button class="tab-btn" role="tab" aria-selected="false" data-tab="daten">Daten</button>
     <button class="tab-btn" role="tab" aria-selected="false" data-tab="hilfe">Hilfe</button>
   </nav>
 
+  <!-- VERBINDEN -->
+  <section id="verbinden" class="section active">
+    <div id="bleNoSupport" class="ble-no-support" style="display:none">
+      <strong>Bluetooth nicht verfügbar</strong>
+      Web Bluetooth wird nur in Chrome auf Android und Chrome Desktop (mit Flag) unterstützt.
+      Öffne diese Seite in Google Chrome auf deinem Handy.
+    </div>
+    <div id="bleContent">
+      <div class="ble-status">
+        <div class="ble-dot" id="bleDot"></div>
+        <span class="ble-label" id="bleLabel">Getrennt</span>
+        <span class="ble-device" id="bleDevice"></span>
+      </div>
+      <div class="ble-actions">
+        <button class="ble-btn ble-btn-primary" id="bleScan">Scooter suchen</button>
+        <button class="ble-btn ble-btn-sec" id="bleDisconnect" disabled>Trennen</button>
+      </div>
+
+      <h2 class="section-title">Live-Daten</h2>
+      <div class="live-grid">
+        <div class="live-tile">
+          <div class="live-tile-label">Akkuspannung</div>
+          <div class="live-tile-value" id="liveVolt">-- <span class="live-tile-unit">V</span></div>
+        </div>
+        <div class="live-tile">
+          <div class="live-tile-label">Akku</div>
+          <div class="live-tile-value" id="liveBat">-- <span class="live-tile-unit">%</span></div>
+        </div>
+        <div class="live-tile">
+          <div class="live-tile-label">Geschwindigkeit</div>
+          <div class="live-tile-value" id="liveSpeed">-- <span class="live-tile-unit">km/h</span></div>
+        </div>
+        <div class="live-tile">
+          <div class="live-tile-label">Strom</div>
+          <div class="live-tile-value" id="liveCurrent">-- <span class="live-tile-unit">A</span></div>
+        </div>
+        <div class="live-tile">
+          <div class="live-tile-label">Temperatur</div>
+          <div class="live-tile-value" id="liveTemp">-- <span class="live-tile-unit">&deg;C</span></div>
+        </div>
+        <div class="live-tile">
+          <div class="live-tile-label">Fahrmodus</div>
+          <div class="live-tile-value" id="liveMode">--</div>
+        </div>
+        <div class="live-tile">
+          <div class="live-tile-label">Kilometer</div>
+          <div class="live-tile-value" id="liveOdo">-- <span class="live-tile-unit">km</span></div>
+        </div>
+        <div class="live-tile">
+          <div class="live-tile-label">Fehler</div>
+          <div class="live-tile-value" id="liveErr">--</div>
+        </div>
+      </div>
+
+      <h2 class="section-title">Dienste &amp; Eigenschaften</h2>
+      <div id="bleServices" class="ble-services">
+        <div class="no-results">Nicht verbunden. Drücke "Scooter suchen" um BLE-Dienste zu entdecken.</div>
+      </div>
+
+      <h2 class="section-title" style="margin-top:20px">Protokoll</h2>
+      <div class="ble-log" id="bleLog">Bereit. Drücke "Scooter suchen" um zu starten.</div>
+    </div>
+  </section>
+
+
   <!-- DIAGNOSE -->
-  <section id="diagnose" class="section active">
+  <section id="diagnose" class="section">
     <div class="search-wrap">
       <input type="text" class="search-input" id="errSearch" placeholder="Fehlercode eingeben, z.B. E04 oder Suchbegriff..." autocomplete="off">
     </div>
@@ -767,5 +923,335 @@ renderMaint();
       </div>
     </div>
   `).join('');
+})();
+
+/* ── Bluetooth / Verbinden ───────────────────── */
+(function() {
+  const UART_SERVICES = [
+    {name:'Generic UART (FFE0)', svc:0xFFE0, tx:0xFFE1, rx:0xFFE1},
+    {name:'Nordic UART (NUS)', svc:'6e400001-b5a3-f393-e0a9-e50e24dcca9e',
+     tx:'6e400002-b5a3-f393-e0a9-e50e24dcca9e', rx:'6e400003-b5a3-f393-e0a9-e50e24dcca9e'},
+    {name:'Alt UART (FFF0)', svc:0xFFF0, tx:0xFFF1, rx:0xFFF2},
+  ];
+
+  const dot = document.getElementById('bleDot');
+  const label = document.getElementById('bleLabel');
+  const deviceEl = document.getElementById('bleDevice');
+  const logEl = document.getElementById('bleLog');
+  const svcEl = document.getElementById('bleServices');
+  const scanBtn = document.getElementById('bleScan');
+  const discBtn = document.getElementById('bleDisconnect');
+  const noSupport = document.getElementById('bleNoSupport');
+  const bleContent = document.getElementById('bleContent');
+
+  let gattServer = null;
+  let txChar = null;
+  let rxChar = null;
+  let pollTimer = null;
+
+  if (!navigator.bluetooth) {
+    noSupport.style.display = '';
+    bleContent.style.display = 'none';
+    return;
+  }
+
+  function log(msg, cls) {
+    const ts = new Date().toLocaleTimeString('de-DE');
+    const span = document.createElement('span');
+    if (cls) span.className = cls;
+    span.textContent = `[${ts}] ${msg}\n`;
+    logEl.appendChild(span);
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  function bytesToHex(buf) {
+    return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2,'0')).join(' ');
+  }
+
+  function setStatus(state, text, device) {
+    dot.className = 'ble-dot' + (state ? ' ' + state : '');
+    label.textContent = text;
+    deviceEl.textContent = device || '';
+  }
+
+  function setLive(id, val, unit, cls) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.className = 'live-tile-value' + (cls ? ' ' + cls : '');
+    el.innerHTML = val + (unit ? ' <span class="live-tile-unit">' + unit + '</span>' : '');
+  }
+
+  function voltToPercent(v) {
+    if (v >= 54.6) return 100;
+    if (v <= 39.0) return 0;
+    return Math.round((v - 39.0) / (54.6 - 39.0) * 100);
+  }
+
+  function batClass(pct) {
+    if (pct <= 15) return 'crit';
+    if (pct <= 30) return 'warn';
+    return 'ok';
+  }
+
+  function parseFrame(data) {
+    const bytes = new Uint8Array(data.buffer);
+    if (bytes.length < 4) return;
+
+    log('RX: ' + bytesToHex(bytes), 'log-data');
+
+    // Protocol A: [5A A5] [len] [cmd] [data...] [checksum]
+    if (bytes[0] === 0x5A && bytes[1] === 0xA5 && bytes.length >= 6) {
+      const cmd = bytes[3];
+      if (cmd === 0x40 || cmd === 0x31) {
+        const volt = ((bytes[4] << 8) | bytes[5]) / 100;
+        const pct = voltToPercent(volt);
+        setLive('liveVolt', volt.toFixed(1), 'V');
+        setLive('liveBat', pct, '%', batClass(pct));
+        log('Spannung: ' + volt.toFixed(1) + 'V (' + pct + '%)', 'log-ok');
+      }
+      if (cmd === 0x41 || cmd === 0x32) {
+        const speed = ((bytes[4] << 8) | bytes[5]) / 10;
+        setLive('liveSpeed', speed.toFixed(1), 'km/h');
+      }
+      if (cmd === 0x42 || cmd === 0x33) {
+        const odo = ((bytes[4] << 16) | (bytes[5] << 8) | bytes[6]) / 10;
+        setLive('liveOdo', odo.toFixed(0), 'km');
+      }
+      if (cmd === 0x43 || cmd === 0x34) {
+        const temp = bytes[4] - 20;
+        setLive('liveTemp', temp, '°C', temp > 60 ? 'crit' : (temp > 45 ? 'warn' : ''));
+      }
+      if (cmd === 0x44 || cmd === 0x35) {
+        const errCode = bytes[4];
+        if (errCode === 0) {
+          setLive('liveErr', 'Keiner', '', 'ok');
+        } else {
+          setLive('liveErr', 'E' + errCode.toString().padStart(2,'0'), '', 'crit');
+          log('Fehlercode: E' + errCode.toString().padStart(2,'0'), 'log-err');
+        }
+      }
+      return;
+    }
+
+    // Protocol B: [AA] [len] [src] [cmd] [data...] [checksum] [55]
+    if (bytes[0] === 0xAA && bytes[bytes.length - 1] === 0x55 && bytes.length >= 7) {
+      const cmd = bytes[3];
+      if (cmd === 0x16 || cmd === 0x25) {
+        const volt = ((bytes[4] << 8) | bytes[5]) / 100;
+        const pct = voltToPercent(volt);
+        setLive('liveVolt', volt.toFixed(1), 'V');
+        setLive('liveBat', pct, '%', batClass(pct));
+      }
+      if (cmd === 0x26) {
+        const speed = ((bytes[4] << 8) | bytes[5]) / 10;
+        setLive('liveSpeed', speed.toFixed(1), 'km/h');
+      }
+      if (cmd === 0x17) {
+        const current = ((bytes[4] << 8) | bytes[5]) / 100;
+        setLive('liveCurrent', current.toFixed(1), 'A');
+      }
+      if (cmd === 0x1A) {
+        setLive('liveMode', bytes[4], '');
+      }
+      return;
+    }
+
+    // Protocol C: continuous stream (some controllers send periodic packets)
+    if (bytes.length >= 10) {
+      const volt = ((bytes[2] << 8) | bytes[3]) / 100;
+      if (volt > 30 && volt < 70) {
+        const pct = voltToPercent(volt);
+        setLive('liveVolt', volt.toFixed(1), 'V');
+        setLive('liveBat', pct, '%', batClass(pct));
+        const speed = ((bytes[4] << 8) | bytes[5]) / 10;
+        if (speed >= 0 && speed < 100) setLive('liveSpeed', speed.toFixed(1), 'km/h');
+      }
+    }
+  }
+
+  function renderServices(services) {
+    let html = '';
+    services.forEach(svc => {
+      const uuid = svc.uuid.length > 8 ? svc.uuid.substring(0, 8) + '...' : svc.uuid;
+      html += `<div class="ble-svc"><div class="ble-svc-name">Service: ${uuid}</div>`;
+      svc.chars.forEach(c => {
+        const props = [];
+        if (c.properties.read) props.push('read');
+        if (c.properties.write) props.push('write');
+        if (c.properties.writeWithoutResponse) props.push('writeNoResp');
+        if (c.properties.notify) props.push('notify');
+        if (c.properties.indicate) props.push('indicate');
+        const cuuid = c.uuid.length > 8 ? c.uuid.substring(0, 8) + '...' : c.uuid;
+        html += `<div class="ble-char">${cuuid} <span class="ble-char-props">${props.join(' ')}</span></div>`;
+      });
+      html += '</div>';
+    });
+    svcEl.innerHTML = html || '<div class="no-results">Keine Dienste gefunden.</div>';
+  }
+
+  async function discoverAndSubscribe(server) {
+    const discoveredServices = [];
+    let foundUart = false;
+
+    try {
+      const allServices = await server.getPrimaryServices();
+      log(allServices.length + ' Dienste gefunden.', 'log-info');
+
+      for (const svc of allServices) {
+        const svcInfo = {uuid: svc.uuid, chars: []};
+        try {
+          const chars = await svc.getCharacteristics();
+          for (const ch of chars) {
+            svcInfo.chars.push({uuid: ch.uuid, properties: ch.properties});
+
+            for (const known of UART_SERVICES) {
+              const svcMatch = typeof known.svc === 'number'
+                ? svc.uuid === BluetoothUUID.getService(known.svc)
+                : svc.uuid === known.svc;
+              if (!svcMatch) continue;
+
+              const rxMatch = typeof known.rx === 'number'
+                ? ch.uuid === BluetoothUUID.getCharacteristic(known.rx)
+                : ch.uuid === known.rx;
+              const txMatch = typeof known.tx === 'number'
+                ? ch.uuid === BluetoothUUID.getCharacteristic(known.tx)
+                : ch.uuid === known.tx;
+
+              if (rxMatch && ch.properties.notify) {
+                rxChar = ch;
+                log('UART RX gefunden: ' + known.name, 'log-ok');
+                foundUart = true;
+                ch.addEventListener('characteristicvaluechanged', e => parseFrame(e.target.value));
+                await ch.startNotifications();
+                log('Notifications aktiviert auf RX.', 'log-ok');
+              }
+              if (txMatch && (ch.properties.write || ch.properties.writeWithoutResponse)) {
+                txChar = ch;
+                log('UART TX gefunden: ' + known.name, 'log-ok');
+              }
+            }
+
+            if (!foundUart && ch.properties.notify) {
+              log('Notify-Characteristic gefunden: ' + ch.uuid.substring(0,8) + '... — abonniere.', 'log-info');
+              ch.addEventListener('characteristicvaluechanged', e => parseFrame(e.target.value));
+              await ch.startNotifications();
+              rxChar = ch;
+              foundUart = true;
+            }
+          }
+        } catch(e) {
+          log('Characteristics lesen fehlgeschlagen: ' + e.message, 'log-err');
+        }
+        discoveredServices.push(svcInfo);
+      }
+    } catch(e) {
+      log('Service-Discovery fehlgeschlagen: ' + e.message, 'log-err');
+    }
+
+    renderServices(discoveredServices);
+
+    if (!foundUart) {
+      log('Kein UART-Dienst erkannt. Daten werden angezeigt sobald der Scooter sendet.', 'log-info');
+    }
+  }
+
+  async function sendCommand(bytes) {
+    if (!txChar) return;
+    try {
+      const data = new Uint8Array(bytes);
+      if (txChar.properties.writeWithoutResponse) {
+        await txChar.writeValueWithoutResponse(data);
+      } else {
+        await txChar.writeValueWithResponse(data);
+      }
+      log('TX: ' + bytesToHex(data), 'log-data');
+    } catch(e) {
+      log('Senden fehlgeschlagen: ' + e.message, 'log-err');
+    }
+  }
+
+  function startPolling() {
+    stopPolling();
+    pollTimer = setInterval(() => {
+      if (!txChar) return;
+      sendCommand([0x5A, 0xA5, 0x02, 0x40, 0x00, 0xE1]);
+      setTimeout(() => sendCommand([0x5A, 0xA5, 0x02, 0x41, 0x00, 0xE2]), 200);
+      setTimeout(() => sendCommand([0x5A, 0xA5, 0x02, 0x43, 0x00, 0xE4]), 400);
+      setTimeout(() => sendCommand([0x5A, 0xA5, 0x02, 0x44, 0x00, 0xE5]), 600);
+    }, 2000);
+  }
+
+  function stopPolling() {
+    if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+  }
+
+  function disconnect() {
+    stopPolling();
+    if (gattServer && gattServer.connected) {
+      gattServer.disconnect();
+    }
+    gattServer = null; txChar = null; rxChar = null;
+    setStatus('', 'Getrennt', '');
+    discBtn.disabled = true;
+    scanBtn.disabled = false;
+    svcEl.innerHTML = '<div class="no-results">Nicht verbunden.</div>';
+    log('Verbindung getrennt.', 'log-info');
+  }
+
+  scanBtn.addEventListener('click', async () => {
+    scanBtn.disabled = true;
+    setStatus('scanning', 'Suche...', '');
+    logEl.innerHTML = '';
+    log('Starte BLE-Scan...', 'log-info');
+    log('Tipp: Scooter einschalten und in der Nähe halten.', 'log-info');
+
+    try {
+      const filters = UART_SERVICES.map(u => ({services: [typeof u.svc === 'number' ? BluetoothUUID.getService(u.svc) : u.svc]}));
+      const device = await navigator.bluetooth.requestDevice({
+        filters: filters,
+        optionalServices: UART_SERVICES.map(u => typeof u.svc === 'number' ? BluetoothUUID.getService(u.svc) : u.svc),
+        acceptAllDevices: false,
+      }).catch(() =>
+        navigator.bluetooth.requestDevice({
+          acceptAllDevices: true,
+          optionalServices: UART_SERVICES.map(u => typeof u.svc === 'number' ? BluetoothUUID.getService(u.svc) : u.svc),
+        })
+      );
+
+      const name = device.name || device.id;
+      log('Gerät ausgewählt: ' + name, 'log-ok');
+      setStatus('scanning', 'Verbinde...', name);
+
+      device.addEventListener('gattserverdisconnected', () => {
+        log('Verbindung verloren.', 'log-err');
+        disconnect();
+      });
+
+      gattServer = await device.gatt.connect();
+      log('GATT verbunden.', 'log-ok');
+      setStatus('connected', 'Verbunden', name);
+      discBtn.disabled = false;
+      scanBtn.disabled = false;
+
+      await discoverAndSubscribe(gattServer);
+
+      if (txChar) {
+        log('Starte Polling für Live-Daten...', 'log-info');
+        startPolling();
+      }
+
+    } catch(e) {
+      if (e.name === 'NotFoundError') {
+        log('Kein Gerät ausgewählt.', 'log-info');
+        setStatus('', 'Getrennt', '');
+      } else {
+        log('Fehler: ' + e.message, 'log-err');
+        setStatus('error', 'Fehler', '');
+      }
+      scanBtn.disabled = false;
+    }
+  });
+
+  discBtn.addEventListener('click', disconnect);
 })();
 </script>

@@ -1,0 +1,41 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.joyor.s5service'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.joyor.s5service"
+        minSdk 24
+        targetSdk 34
+        versionCode 1
+        versionName "1.0"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    implementation 'androidx.appcompat:appcompat:1.7.0'
+    implementation 'androidx.webkit:webkit:1.12.1'
+}
+
+tasks.register('copyServiceTool', Copy) {
+    from "${rootProject.projectDir}/../joyor-s5-service-tool.html"
+    into "${projectDir}/src/main/assets"
+    rename { 'index.html' }
+}
+
+preBuild.dependsOn copyServiceTool
